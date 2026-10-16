@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="description" content="Calm Haven / Sakin Sığınak — bilgi işlem ortamlarında tükenmişlik ve panik için nörobiyolojik tabanlı dijital sığınak. Nefes rehberi, prosedürel doğa sesleri ve sonsuz orman.">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="color-scheme" content="dark">
+  <title>Calm Haven / Sakin Sığınak</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/animations.css">
+</head>
+<body>
+
+  <!-- Görsel alan: sonsuz orman & ada -->
+  <canvas id="forest-canvas" aria-hidden="true"></canvas>
+
+  <!-- Üst bar -->
+  <header class="top-bar">
+    <h1 class="brand">
+      <span class="brand-mark" aria-hidden="true">🌿</span>
+      <span class="brand-text">Sakin Sığınak</span>
+    </h1>
+
+    <nav class="controls" aria-label="Ana kontroller">
+      <button type="button" id="btn-cruise" class="ctrl-btn" aria-pressed="false"
+              aria-label="Kendi akışına bırak: otomatik gezinti modunu aç veya kapat">
+        <span class="ctrl-icon" aria-hidden="true">🍃</span>
+        <span class="ctrl-label">Kendi Akışına Bırak</span>
+      </button>
+
+      <button type="button" id="btn-calm" class="ctrl-btn" aria-label="Sakinleş: fizyolojik içe çekiş nefesine başla">
+        <span class="ctrl-icon" aria-hidden="true">🫁</span>
+        <span class="ctrl-label">Sakinleş</span>
+      </button>
+
+      <button type="button" id="btn-audio" class="ctrl-btn" aria-pressed="true"
+              aria-label="Sesi aç veya kapat">
+        <span class="ctrl-icon" aria-hidden="true">🔊</span>
+        <span class="ctrl-label">Ses</span>
+      </button>
+
+      <button type="button" id="btn-settings" class="ctrl-btn" aria-expanded="false"
+              aria-controls="settings-panel" aria-label="Ayarları aç veya kapat">
+        <span class="ctrl-icon" aria-hidden="true">⚙️</span>
+        <span class="ctrl-label">Ayarlar</span>
+      </button>
+    </nav>
+  </header>
+
+  <main class="stage">
+    <!-- Nefes halkası -->
+    <section class="breath-zone" aria-label="Nefes rehberi">
+      <div class="breath-ring" id="breath-ring" role="img" aria-label="Nefes halkası"></div>
+      <p class="breath-text" id="breath-text" aria-live="polite">Nefes al...</p>
+      <p class="breath-counter" id="breath-counter" aria-live="off"></p>
+    </section>
+  </main>
+
+  <!-- Şefkatli mesaj kartı -->
+  <aside class="message-card" id="message-card" role="status" aria-live="polite">
+    <p class="message-text" id="message-text">Burası sadece senin güvenli alanın.</p>
+  </aside>
+
+  <!-- Alt bilgi çubuğu -->
+  <footer class="hud" aria-label="İlerleme">
+    <dl class="hud-stats">
+      <div class="hud-item">
+        <dt>Sakinlik Adımı</dt>
+        <dd id="stat-steps">0</dd>
+      </div>
+      <div class="hud-item">
+        <dt>Bu Sığınakta</dt>
+        <dd id="stat-time">0 dk</dd>
+      </div>
+      <div class="hud-item">
+        <dt>Sonraki Gelişme</dt>
+        <dd id="stat-next">50 adım</dd>
+      </div>
+    </dl>
+  </footer>
+
+  <!-- Ayarlar paneli -->
+  <section class="settings-panel" id="settings-panel" hidden aria-label="Ayarlar">
+    <h2 class="settings-title">Ayarlar</h2>
+
+    <div class="settings-row">
+      <span class="settings-label" id="label-breath-mode">Nefes Ritmi</span>
+      <div class="segmented" role="radiogroup" aria-labelledby="label-breath-mode">
+        <button type="button" role="radio" aria-checked="true" data-mode="resonance" class="seg-btn">Rezonans 4 / 6</button>
+        <button type="button" role="radio" aria-checked="false" data-mode="sigh" class="seg-btn">İçe Çekiş</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label" id="label-volume">Ses Düzeyi</span>
+      <input type="range" id="volume-range" min="0" max="100" value="45"
+             aria-labelledby="label-volume">
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label" id="label-speed">Yürüyüş Hızı</span>
+      <input type="range" id="speed-range" min="10" max="100" value="45"
+             aria-labelledby="label-speed">
+    </div>
+
+    <div class="settings-row">
+      <button type="button" class="ctrl-btn danger" id="btn-reset"
+              aria-label="Kaydedilmiş ilerlemeyi sıfırla">
+        <span class="ctrl-icon" aria-hidden="true">♻️</span>
+        <span class="ctrl-label">İlerlemeyi Sıfırla</span>
+      </button>
+    </div>
+
+    <p class="settings-hint">
+      <kbd>Space</kbd> yürü · <kbd>P</kbd> sakinleş · <kbd>M</kbd> ses · <kbd>Esc</kbd> ayarlar
+    </p>
+  </section>
+
+  <!-- Kilometre taşı bildirimi -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- Başlangıç perdesi (AudioContext için ilk etkileşim) -->
+  <div class="veil" id="veil">
+    <div class="veil-inner">
+      <p class="veil-mark" aria-hidden="true">🌿</p>
+      <h2 class="veil-title">Sakin Sığınak</h2>
+      <p class="veil-text">
+        Burada skor yok, süre baskısı yok, kayıp yok.<br>
+        Sadece nefesin ve senin ormanın var.
+      </p>
+      <button type="button" id="btn-enter" class="enter-btn">Sığınağa Gir</button>
+      <p class="veil-note">İlk dokunuşta nefes rehberi ve ses başlar.</p>
+    </div>
+  </div>
+
+  <script src="./js/messages.js" defer></script>
+  <script src="./js/breathing.js" defer></script>
+  <script src="./js/audio.js" defer></script>
+  <script src="./js/canvas.js" defer></script>
+  <script src="./js/app.js" defer></script>
+</body>
+</html>
