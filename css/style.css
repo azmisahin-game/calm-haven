@@ -76,7 +76,8 @@ body {
   transition: background 1200ms var(--ease-calm), color 1200ms var(--ease-calm);
 }
 
-/* Görsel alan */
+/* Görsel alan — 3B sahne ve 2B yedek aynı yığın konumunda */
+#scene-canvas,
 #forest-canvas {
   position: fixed;
   inset: 0;
@@ -84,6 +85,11 @@ body {
   height: 100%;
   display: block;
   z-index: 0;
+}
+
+#scene-canvas[hidden],
+#forest-canvas[hidden] {
+  display: none;
 }
 
 /* ---------- Üst bar ---------- */
@@ -486,6 +492,243 @@ input[type="range"]:focus-visible {
 
 .toast[hidden] {
   display: none;
+}
+
+/* ---------- Sığınak panelleri (bahçe, anı defteri) ---------- */
+
+.panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 40;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(78vh, 640px);
+  overflow-y: auto;
+  padding: 22px;
+  border: 1px solid var(--glass-brd);
+  border-radius: var(--radius);
+  background: rgba(9, 20, 32, 0.92);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  box-shadow: var(--glass-shadow);
+  animation: panel-center-in 320ms var(--ease-calm) both;
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--mist);
+}
+
+.panel-close {
+  min-width: var(--touch);
+  min-height: var(--touch);
+  border: 1px solid var(--glass-brd);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mist);
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 220ms var(--ease-calm);
+}
+
+.panel-close:hover {
+  background: rgba(226, 240, 235, 0.1);
+}
+
+.panel-close:focus-visible {
+  outline: 2px solid var(--island-green);
+  outline-offset: 2px;
+}
+
+.panel-note {
+  margin: 0 0 16px;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--mist-dim);
+}
+
+.panel-section {
+  margin-top: 18px;
+}
+
+.panel-sub {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mist-dim);
+}
+
+/* Bahçe ızgarası: 6 sütun x 4 sıra */
+.garden-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--glass-brd);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 13, 28, 0.5);
+}
+
+.garden-plot {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px dashed rgba(226, 240, 235, 0.14);
+  border-radius: 10px;
+}
+
+.garden-plot.is-planted {
+  border-style: solid;
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.garden-flower {
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transition: transform 900ms var(--ease-calm), opacity 900ms var(--ease-calm);
+}
+
+/* Tohum seçimi */
+.seed-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.seed-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: var(--touch);
+  padding: 0 14px;
+  border: 1px solid var(--glass-brd);
+  border-radius: 999px;
+  background: var(--glass-bg);
+  color: var(--mist);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 220ms var(--ease-calm);
+}
+
+.seed-btn:hover {
+  background: rgba(16, 185, 129, 0.16);
+}
+
+.seed-btn:focus-visible {
+  outline: 2px solid var(--island-green);
+  outline-offset: 3px;
+}
+
+.seed-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex: none;
+}
+
+/* Anı defteri */
+.journal-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.journal-form input {
+  flex: 1;
+  min-height: var(--touch);
+  padding: 0 14px;
+  border: 1px solid var(--glass-brd);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 13, 28, 0.6);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.journal-form input:focus-visible {
+  outline: 2px solid var(--island-green);
+  outline-offset: 2px;
+}
+
+.journal-list {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.journal-list li {
+  padding: 10px 14px;
+  border-left: 2px solid rgba(16, 185, 129, 0.4);
+  border-radius: 8px;
+  background: rgba(7, 13, 28, 0.5);
+  font-size: 0.82rem;
+  color: var(--mist);
+}
+
+.journal-empty {
+  border-left-color: transparent !important;
+  color: var(--mist-dim) !important;
+  font-style: italic;
+}
+
+.journal-date {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.68rem;
+  color: var(--mist-dim);
+}
+
+.sanctuary-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ctrl-btn.small {
+  min-height: var(--touch);
+  font-size: 0.78rem;
+  padding: 0 14px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.shell-toast {
+  top: auto;
+  bottom: clamp(140px, 22vh, 200px);
 }
 
 /* ---------- Başlangıç perdesi ---------- */

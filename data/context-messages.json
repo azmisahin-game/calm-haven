@@ -1,0 +1,84 @@
+[
+  {
+    "id": "creek",
+    "zone": "creek",
+    "trigger": "proximity",
+    "text": "Su sesi... Burada biraz dur.",
+    "priority": 3
+  },
+  {
+    "id": "hill",
+    "zone": "hill",
+    "trigger": "proximity",
+    "text": "Uzaklara bak. Gözlerini dinlendir.",
+    "priority": 3
+  },
+  {
+    "id": "cabin_arrive",
+    "zone": "cabin",
+    "trigger": "proximity",
+    "text": "Kulübene geldin. Burada kimse senden bir şey istemiyor.",
+    "priority": 2
+  },
+  {
+    "id": "shore",
+    "zone": "shore",
+    "trigger": "proximity",
+    "text": "Dalgalar bir ritimle geliyor. Nefesin de öyle.",
+    "priority": 3
+  },
+  {
+    "id": "deep_forest",
+    "zone": "forest",
+    "trigger": "dwell",
+    "text": "Ağaçların arasındasın. Yapraklar senin için hışırdıyor.",
+    "priority": 1
+  },
+  {
+    "id": "bird_arrives",
+    "zone": "any",
+    "trigger": "discovery",
+    "discovery": "heron",
+    "text": "Bir kuş geldi. Onu izle.",
+    "priority": 4
+  },
+  {
+    "id": "star_seen",
+    "zone": "any",
+    "trigger": "discovery",
+    "discovery": "shooting_star",
+    "text": "Bir kayan yıldız geçti. Bu an sadece senin.",
+    "priority": 4
+  },
+  {
+    "id": "butterfly_seen",
+    "zone": "any",
+    "trigger": "discovery",
+    "discovery": "butterfly",
+    "text": "Bir kelebek yoldan geçti. Onu tutman gerekmiyor.",
+    "priority": 4
+  },
+  {
+    "id": "firefly_seen",
+    "zone": "any",
+    "trigger": "discovery",
+    "discovery": "firefly",
+    "text": "Ağaçların arasında bir ateş böceği parlıyor.",
+    "priority": 4
+  },
+  {
+    "id": "sigh_done",
+    "zone": "any",
+    "trigger": "breath",
+    "text": "İçe çekişi tamamladın. Bedenin bunu hatırlayacak.",
+    "priority": 2
+  },
+  {
+    "id": "long_walk",
+    "zone": "any",
+    "trigger": "dwell",
+    "dwellSeconds": 180,
+    "text": "Uzun süredir yürüyorsun. Durmak da bir seçenek.",
+    "priority": 2
+  }
+]

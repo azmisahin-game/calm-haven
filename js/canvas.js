@@ -1023,7 +1023,8 @@ const CalmForest = (function () {
     let target = 0;
     if (holding) target = baseSpeed;
     else if (cruise) target = baseSpeed * 0.75;
-    else if (idle) target = baseSpeed * IDLE_SPEED_FACTOR;
+    // Hareket azaltma: boşta otomatik kayma yapılmaz (kamera hareketi azaltılır)
+    else if (idle && !reducedMotion) target = baseSpeed * IDLE_SPEED_FACTOR;
 
     currentSpeed += (target - currentSpeed) * Math.min(1, dt * 1.8);
     if (currentSpeed < 0.01) currentSpeed = 0;

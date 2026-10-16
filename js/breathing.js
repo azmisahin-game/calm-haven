@@ -49,6 +49,7 @@ const CalmBreathing = (function () {
   let onProgress = null;
   let onSighStep = null;
   let exhaleEndCb = null;
+  let sighCompleteCb = null;
   let rafId = null;
 
   /* ---------- Görsel yardımcılar ---------- */
@@ -167,6 +168,7 @@ const CalmBreathing = (function () {
 
     if (sighCycle > cfg.cycles) {
       // Protokol tamamlandı: varsayılan rezonans ritmine dön
+      if (sighCompleteCb) sighCompleteCb();
       setMode('resonance', { active: true });
       return;
     }
@@ -295,6 +297,11 @@ const CalmBreathing = (function () {
     exhaleEndCb = cb;
   }
 
+  // İçe çekiş protokolü (3 tur) tamamlandığında çağrılır.
+  function onSighComplete(cb) {
+    sighCompleteCb = cb;
+  }
+
   const api = {
     init: init,
     setMode: setMode,
@@ -305,6 +312,7 @@ const CalmBreathing = (function () {
     getMode: getMode,
     getPhase: getPhase,
     onExhaleEnd: onExhaleEnd,
+    onSighComplete: onSighComplete,
     MODES: BREATH_MODES
   };
 

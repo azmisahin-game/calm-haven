@@ -13,7 +13,9 @@
 </head>
 <body>
 
-  <!-- Görsel alan: sonsuz orman & ada -->
+  <!-- Görsel alan: 3B sahne (Three.js) ve 2B yedek motor.
+       3B yüklenemezse 2B tuval görünür kalır; boş ekran oluşmaz. -->
+  <canvas id="scene-canvas" aria-hidden="true" hidden></canvas>
   <canvas id="forest-canvas" aria-hidden="true"></canvas>
 
   <!-- Üst bar -->
@@ -124,6 +126,23 @@
     </div>
 
     <div class="settings-row">
+      <span class="settings-label" id="label-sanctuary">Sığınağın</span>
+      <div class="sanctuary-grid">
+        <button type="button" class="ctrl-btn small" id="btn-garden"
+                aria-label="Bahçeyi aç: çiçek dik">
+          <span class="ctrl-icon" aria-hidden="true">🌸</span>
+          <span class="ctrl-label">Bahçe</span>
+        </button>
+        <button type="button" class="ctrl-btn small" id="btn-journal"
+                aria-label="Anı defterini aç">
+          <span class="ctrl-icon" aria-hidden="true">📖</span>
+          <span class="ctrl-label">Anı Defteri</span>
+        </button>
+      </div>
+      <p class="settings-note" id="sanctuary-summary">Bahçen boş.</p>
+    </div>
+
+    <div class="settings-row">
       <button type="button" class="ctrl-btn danger" id="btn-reset"
               aria-label="Kaydedilmiş ilerlemeyi sıfırla">
         <span class="ctrl-icon" aria-hidden="true">♻️</span>
@@ -139,6 +158,45 @@
 
   <!-- Kilometre taşı bildirimi -->
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- Bahçe paneli -->
+  <section class="panel" id="garden-panel" hidden aria-label="Bahçe">
+    <header class="panel-head">
+      <h2 class="panel-title">Bahçen</h2>
+      <button type="button" class="panel-close" id="btn-garden-close" aria-label="Bahçeyi kapat">✕</button>
+    </header>
+    <p class="panel-note">
+      Çiçekler büyür ve öyle kalır. Hiçbiri solmaz, hiçbirini kaybetmezsin.
+    </p>
+    <div class="garden-grid" id="garden-grid" aria-label="Bahçe düzeni"></div>
+    <div class="panel-section">
+      <h3 class="panel-sub">Çiçek Dik</h3>
+      <div class="seed-row" id="seed-row"></div>
+    </div>
+  </section>
+
+  <!-- Anı defteri paneli -->
+  <section class="panel" id="journal-panel" hidden aria-label="Anı defteri">
+    <header class="panel-head">
+      <h2 class="panel-title">Anı Defteri</h2>
+      <button type="button" class="panel-close" id="btn-journal-close" aria-label="Anı defterini kapat">✕</button>
+    </header>
+    <p class="panel-note">
+      Buradaki her şey yalnızca bu cihazda kalır. Sunucuya gitmez, paylaşılmaz.
+    </p>
+    <form class="journal-form" id="journal-form">
+      <label class="visually-hidden" for="journal-input">Anı yaz</label>
+      <input type="text" id="journal-input" maxlength="500" autocomplete="off"
+             placeholder="Bugün fark ettiğim bir şey...">
+      <button type="submit" class="ctrl-btn small" aria-label="Anıyı kaydet">Ekle</button>
+    </form>
+    <ul class="journal-list" id="journal-list"></ul>
+    <button type="button" class="ctrl-btn small danger" id="btn-journal-clear"
+            aria-label="Anı defterini temizle">Defteri Temizle</button>
+  </section>
+
+  <!-- Deniz kabuğu bildirimi -->
+  <div class="toast shell-toast" id="shell-toast" role="status" aria-live="polite" hidden></div>
 
   <!-- Başlangıç perdesi (AudioContext için ilk etkileşim) -->
   <div class="veil" id="veil">
@@ -157,9 +215,13 @@
   <script src="./js/messages.js" defer></script>
   <script src="./js/world.js" defer></script>
   <script src="./js/discovery.js" defer></script>
+  <script src="./js/context.js" defer></script>
+  <script src="./js/sanctuary.js" defer></script>
   <script src="./js/breathing.js" defer></script>
   <script src="./js/audio.js" defer></script>
   <script src="./js/canvas.js" defer></script>
   <script src="./js/app.js" defer></script>
+  <!-- 3B sahne: ES modülü, kendini async yükler. WebGL yoksa 2B motor devam eder. -->
+  <script type="module" src="./js/scene3d.js"></script>
 </body>
 </html>
