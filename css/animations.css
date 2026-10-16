@@ -1,0 +1,133 @@
+/* =========================================================
+   Calm Haven / Sakin Sığınak — animations.css
+   Nefes ve fraktal doğa keyframe'leri + hareket azaltma
+   ========================================================= */
+
+/* Panel ve bildirim girişleri */
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toast-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+  18% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes veil-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Nefes metni yumuşak geçişi */
+@keyframes breath-breathe {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.breath-text {
+  animation: breath-breathe 8s var(--ease-calm) infinite;
+}
+
+/* Halka için çok yavaş ışıma.
+   filter kullanılır: JS transform'una ve .is-holding box-shadow'una dokunmaz. */
+@keyframes ring-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 14px rgba(16, 185, 129, 0.18));
+  }
+  50% {
+    filter: drop-shadow(0 0 30px rgba(16, 185, 129, 0.32));
+  }
+}
+
+.breath-ring {
+  animation: ring-glow 11s ease-in-out infinite;
+}
+
+/* Fraktal doğa: yaprak/polen sürüklenmesi (dekoratif katman) */
+@keyframes drift-diagonal {
+  from {
+    transform: translate3d(-6vw, -4vh, 0) rotate(0deg);
+  }
+  to {
+    transform: translate3d(106vw, 24vh, 0) rotate(320deg);
+  }
+}
+
+/* İlerleme kilometre taşı kutlaması: nazik parıldama */
+@keyframes milestone-pulse {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.milestone-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 26;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 50% 62%,
+      rgba(245, 158, 11, 0.22) 0%,
+      rgba(245, 158, 11, 0) 70%);
+  animation: milestone-pulse 2200ms var(--ease-calm) both;
+}
+
+/* ---------- Hareket azaltma tercihi ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .breath-ring {
+    transition-duration: 0.01ms !important;
+    animation: none !important;
+  }
+
+  .breath-text,
+  .message-card,
+  .veil,
+  .toast,
+  .settings-panel,
+  .enter-btn,
+  .ctrl-btn,
+  .seg-btn {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .milestone-flash {
+    display: none;
+  }
+}

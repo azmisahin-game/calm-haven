@@ -1,0 +1,591 @@
+/* =========================================================
+   Calm Haven / Sakin Sığınak — style.css
+   Koyu tema, CSS değişkenleri, tipografi, buzlu cam, düzen
+   ========================================================= */
+
+:root {
+  /* Palet */
+  --night-blue:   #0f172a;
+  --night-deep:   #070d1c;
+  --forest-emerald: #062c22;
+  --island-green: #10b981;
+  --island-green-soft: rgba(16, 185, 129, 0.35);
+  --lantern-amber: #f59e0b;
+  --lantern-amber-soft: rgba(245, 158, 11, 0.28);
+  --mist: rgba(226, 240, 235, 0.72);
+  --mist-dim: rgba(226, 240, 235, 0.45);
+  --ink: #e8f1ee;
+
+  /* Yüzeyler */
+  --glass-bg: rgba(9, 20, 32, 0.55);
+  --glass-brd: rgba(226, 240, 235, 0.12);
+  --glass-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+
+  /* Ölçüler */
+  --radius: 18px;
+  --radius-sm: 12px;
+  --touch: 48px;
+  --gap: 12px;
+
+  /* Hareket */
+  --ease-calm: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-soft: 600ms;
+
+  /* Tipografi */
+  --font: "Avenir Next", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #14203b 0%, var(--night-blue) 42%, var(--night-deep) 100%);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Görsel alan */
+#forest-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+}
+
+/* ---------- Üst bar ---------- */
+
+.top-bar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: 14px clamp(12px, 3vw, 28px);
+  background: linear-gradient(to bottom, rgba(7, 13, 28, 0.72), rgba(7, 13, 28, 0));
+  pointer-events: none;
+}
+
+.brand {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mist);
+  pointer-events: auto;
+}
+
+.brand-mark {
+  font-size: 1.25rem;
+  filter: drop-shadow(0 0 10px var(--island-green-soft));
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--touch);
+  min-width: var(--touch);
+  padding: 0 16px;
+  border: 1px solid var(--glass-brd);
+  border-radius: 999px;
+  background: var(--glass-bg);
+  color: var(--mist);
+  font: inherit;
+  font-size: 0.86rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  transition: background 220ms var(--ease-calm), border-color 220ms var(--ease-calm),
+              color 220ms var(--ease-calm), transform 220ms var(--ease-calm);
+}
+
+.ctrl-btn:hover {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: var(--island-green-soft);
+  color: #fff;
+}
+
+.ctrl-btn:focus-visible {
+  outline: 2px solid var(--island-green);
+  outline-offset: 3px;
+}
+
+.ctrl-btn:active {
+  transform: scale(0.97);
+}
+
+.ctrl-btn[aria-pressed="true"] {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--island-green-soft);
+  color: #fff;
+}
+
+.ctrl-btn.danger:hover {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: var(--lantern-amber-soft);
+}
+
+.ctrl-icon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+/* ---------- Sahne & nefes halkası ---------- */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.breath-zone {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  transform: translateY(-4vh);
+}
+
+.breath-ring {
+  width: clamp(160px, 26vmin, 280px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 45%,
+      rgba(226, 240, 235, 0.10) 0%,
+      rgba(16, 185, 129, 0.16) 38%,
+      rgba(16, 185, 129, 0.04) 62%,
+      rgba(15, 23, 42, 0) 72%);
+  border: 1px solid rgba(226, 240, 235, 0.22);
+  box-shadow:
+    inset 0 0 60px rgba(16, 185, 129, 0.14),
+    0 0 90px rgba(16, 185, 129, 0.12);
+  transform: scale(1);
+  transition: transform 4s var(--ease-calm), box-shadow 900ms var(--ease-calm);
+  will-change: transform;
+}
+
+.breath-ring.is-holding {
+  box-shadow:
+    inset 0 0 80px rgba(245, 158, 11, 0.18),
+    0 0 110px rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.34);
+}
+
+.breath-text {
+  margin: 0;
+  min-height: 1.6em;
+  font-size: clamp(0.95rem, 2.4vmin, 1.15rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mist);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
+  transition: opacity 500ms var(--ease-calm);
+}
+
+.breath-counter {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  color: var(--mist-dim);
+}
+
+/* ---------- Mesaj kartı ---------- */
+
+.message-card {
+  position: fixed;
+  left: 50%;
+  bottom: clamp(84px, 13vh, 132px);
+  transform: translateX(-50%);
+  z-index: 18;
+  width: min(680px, calc(100vw - 32px));
+  padding: 16px 22px;
+  border: 1px solid var(--glass-brd);
+  border-radius: var(--radius);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px) saturate(130%);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  box-shadow: var(--glass-shadow);
+  opacity: 1;
+  transition: opacity 600ms var(--ease-calm);
+  pointer-events: none;
+}
+
+.message-text {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(0.92rem, 2.3vmin, 1.05rem);
+  color: var(--mist);
+}
+
+/* ---------- Alt bilgi (HUD) ---------- */
+
+.hud {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 20;
+  padding: 10px clamp(12px, 3vw, 28px) 16px;
+  background: linear-gradient(to top, rgba(7, 13, 28, 0.78), rgba(7, 13, 28, 0));
+}
+
+.hud-stats {
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  gap: clamp(16px, 5vw, 56px);
+}
+
+.hud-item {
+  text-align: center;
+}
+
+.hud-item dt {
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mist-dim);
+}
+
+.hud-item dd {
+  margin: 2px 0 0;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--mist);
+}
+
+/* ---------- Ayarlar paneli ---------- */
+
+.settings-panel {
+  position: fixed;
+  top: 78px;
+  right: clamp(12px, 3vw, 28px);
+  z-index: 30;
+  width: min(340px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid var(--glass-brd);
+  border-radius: var(--radius);
+  background: rgba(9, 20, 32, 0.86);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  box-shadow: var(--glass-shadow);
+  animation: panel-in 320ms var(--ease-calm) both;
+}
+
+.settings-panel[hidden] {
+  display: none;
+}
+
+.settings-title {
+  margin: 0 0 16px;
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--mist-dim);
+}
+
+.settings-row {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.settings-label {
+  font-size: 0.82rem;
+  color: var(--mist);
+}
+
+.settings-hint {
+  margin: 4px 0 0;
+  font-size: 0.74rem;
+  color: var(--mist-dim);
+  line-height: 1.9;
+}
+
+kbd {
+  padding: 1px 7px;
+  border: 1px solid var(--glass-brd);
+  border-radius: 6px;
+  background: rgba(226, 240, 235, 0.07);
+  font-family: inherit;
+  font-size: 0.72rem;
+}
+
+/* Segmentli kontrol */
+.segmented {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--glass-brd);
+  border-radius: 999px;
+  background: rgba(7, 13, 28, 0.6);
+}
+
+.seg-btn {
+  flex: 1;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mist-dim);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 220ms var(--ease-calm), color 220ms var(--ease-calm);
+}
+
+.seg-btn[aria-checked="true"] {
+  background: rgba(16, 185, 129, 0.22);
+  color: #fff;
+}
+
+.seg-btn:focus-visible {
+  outline: 2px solid var(--island-green);
+  outline-offset: 2px;
+}
+
+/* Kaydırıcılar */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: var(--touch);
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(226, 240, 235, 0.16);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(226, 240, 235, 0.16);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -9px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--island-green);
+  box-shadow: 0 0 16px var(--island-green-soft);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--island-green);
+  box-shadow: 0 0 16px var(--island-green-soft);
+}
+
+input[type="range"]:focus-visible {
+  outline: 2px solid var(--island-green);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+/* ---------- Bildirim (toast) ---------- */
+
+.toast {
+  position: fixed;
+  top: clamp(78px, 12vh, 116px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 28;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 12px 20px;
+  border: 1px solid var(--lantern-amber-soft);
+  border-radius: 999px;
+  background: rgba(9, 20, 32, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--mist);
+  font-size: 0.84rem;
+  text-align: center;
+  box-shadow: 0 0 34px rgba(245, 158, 11, 0.14);
+  animation: toast-in 620ms var(--ease-calm) both;
+}
+
+.toast[hidden] {
+  display: none;
+}
+
+/* ---------- Başlangıç perdesi ---------- */
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(7, 13, 28, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: opacity 900ms var(--ease-calm), visibility 900ms var(--ease-calm);
+}
+
+.veil.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.veil-inner {
+  width: min(520px, 100%);
+  text-align: center;
+  animation: veil-rise 1100ms var(--ease-calm) both;
+}
+
+.veil-mark {
+  margin: 0 0 8px;
+  font-size: 2.4rem;
+  filter: drop-shadow(0 0 22px var(--island-green-soft));
+}
+
+.veil-title {
+  margin: 0 0 14px;
+  font-size: clamp(1.4rem, 4.6vmin, 2rem);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+}
+
+.veil-text {
+  margin: 0 0 26px;
+  color: var(--mist);
+  font-size: 0.95rem;
+}
+
+.veil-note {
+  margin: 14px 0 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--mist-dim);
+}
+
+.enter-btn {
+  min-height: var(--touch);
+  padding: 0 34px;
+  border: 1px solid var(--island-green-soft);
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.18);
+  color: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: background 260ms var(--ease-calm), transform 260ms var(--ease-calm),
+              box-shadow 260ms var(--ease-calm);
+}
+
+.enter-btn:hover {
+  background: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 40px var(--island-green-soft);
+}
+
+.enter-btn:focus-visible {
+  outline: 2px solid var(--island-green);
+  outline-offset: 4px;
+}
+
+.enter-btn:active {
+  transform: scale(0.97);
+}
+
+/* ---------- Mobil ---------- */
+
+@media (max-width: 720px) {
+  .ctrl-label {
+    display: none;
+  }
+
+  .ctrl-btn {
+    padding: 0 14px;
+  }
+
+  .brand-text {
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+  }
+
+  .hud-stats {
+    gap: 14px;
+  }
+
+  .hud-item dt {
+    letter-spacing: 0.1em;
+  }
+}
+
+@media (max-width: 420px) {
+  .message-card {
+    padding: 14px 16px;
+  }
+
+  .settings-panel {
+    top: 70px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+}
+
+/* Yatay ekranlarda nefes alanını daralt */
+@media (max-height: 560px) {
+  .breath-zone {
+    transform: translateY(0);
+    gap: 10px;
+  }
+
+  .message-card {
+    bottom: 74px;
+  }
+}
