@@ -17,9 +17,9 @@ const CalmBreathing = (function () {
     },
     sigh: {
       steps: [
-        { duration: 2.5, text: 'Burnundan derin bir nefes al...', scale: 1.15, hold: true },
-        { duration: 1.0, text: 'Üzerine küçük bir nefes daha ekle...', scale: 1.35, hold: true },
-        { duration: 6.0, text: 'Tüm yükü ağzından uzunca bırak...', scale: 0.82, hold: false }
+        { duration: 2.5, text: 'İstersen burnundan derin bir nefes al...', scale: 1.15, hold: true },
+        { duration: 1.0, text: 'Üzerine küçük bir nefes daha ekleyebilirsin...', scale: 1.35, hold: true },
+        { duration: 6.0, text: 'Yükü ağzından uzunca bırak...', scale: 0.82, hold: false }
       ],
       cycles: 3
     }
@@ -130,7 +130,7 @@ const CalmBreathing = (function () {
     applyRing(isInhale ? cfg.scale.inhale : cfg.scale.exhale, duration);
     applyHold(false);
     applyText(isInhale ? cfg.label.inhale : cfg.label.exhale);
-    applyCounter(cfg.inhale + ' sn al / ' + cfg.exhale + ' sn ver');
+    applyCounter('Ritim: ' + cfg.inhale + ' sn al / ' + cfg.exhale + ' sn ver');
 
     onPhaseChange();
 
@@ -146,7 +146,7 @@ const CalmBreathing = (function () {
     applyRing(step.scale, step.duration);
     applyHold(!!step.hold);
     applyText(step.text);
-    applyCounter('İçe çekiş ' + sighCycle + ' / ' + cfg.cycles);
+    applyCounter('Tur ' + sighCycle + ' / ' + cfg.cycles + ' · istediğin an durdurabilirsin');
 
     onPhaseChange();
     if (onSighStep) onSighStep(sighStep, sighCycle);
@@ -235,6 +235,16 @@ const CalmBreathing = (function () {
     setMode('sigh');
   }
 
+  // Rehberi tamamen durdurur. Kullanıcı ritmi takip etmek istemediğinde
+  // çağrılır; cezalandırıcı değildir ve her zaman yeniden başlatılabilir.
+  function stop() {
+    clearTimer();
+    stopProgressLoop();
+    running = false;
+    remaining = 0;
+    phaseDuration = 0;
+  }
+
   function pause() {
     if (!running) return;
     if (timerId !== null) {
@@ -306,6 +316,7 @@ const CalmBreathing = (function () {
     init: init,
     setMode: setMode,
     startSigh: startSigh,
+    stop: stop,
     pause: pause,
     resume: resume,
     setReducedMotion: setReducedMotion,

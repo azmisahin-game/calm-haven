@@ -16,14 +16,19 @@ const CalmContext = (function () {
   const SHOW_MS = 9000;        // bağlamsal mesajın ekranda kalma süresi
   const PROXIMITY_COOLDOWN = 45; // s — aynı bölge mesajı tekrar etmesin
 
-  // Yedek: dosya erişilemezse (file://) bağlamsal mesajlar yine çalışsın
+  // Yedek: dosya erişilemezse (file://) bağlamsal mesajlar yine çalışsın.
+  // Bu havuz data/context-messages.json ile aynı kimlikleri içermelidir;
+  // tests/static-checks.js bu uyumu denetler.
   const FALLBACK = [
     { id: 'creek', zone: 'creek', trigger: 'proximity', priority: 3, text: 'Su sesi... Burada biraz dur.' },
     { id: 'hill', zone: 'hill', trigger: 'proximity', priority: 3, text: 'Uzaklara bak. Gözlerini dinlendir.' },
     { id: 'cabin_arrive', zone: 'cabin', trigger: 'proximity', priority: 2, text: 'Kulübene geldin. Burada kimse senden bir şey istemiyor.' },
     { id: 'shore', zone: 'shore', trigger: 'proximity', priority: 3, text: 'Dalgalar bir ritimle geliyor. Nefesin de öyle.' },
+    { id: 'deep_forest', zone: 'forest', trigger: 'dwell', priority: 1, text: 'Ağaçların arasındasın. Yapraklar senin için hışırdıyor.' },
     { id: 'bird_arrives', zone: 'any', trigger: 'discovery', discovery: 'heron', priority: 4, text: 'Bir kuş geldi. Onu izle.' },
     { id: 'star_seen', zone: 'any', trigger: 'discovery', discovery: 'shooting_star', priority: 4, text: 'Bir kayan yıldız geçti. Bu an sadece senin.' },
+    { id: 'butterfly_seen', zone: 'any', trigger: 'discovery', discovery: 'butterfly', priority: 4, text: 'Bir kelebek yoldan geçti. Onu tutman gerekmiyor.' },
+    { id: 'firefly_seen', zone: 'any', trigger: 'discovery', discovery: 'firefly', priority: 4, text: 'Ağaçların arasında bir ateş böceği parlıyor.' },
     { id: 'sigh_done', zone: 'any', trigger: 'breath', priority: 2, text: 'İçe çekişi tamamladın. Bedenin bunu hatırlayacak.' },
     { id: 'long_walk', zone: 'any', trigger: 'dwell', dwellSeconds: 180, priority: 2, text: 'Uzun süredir yürüyorsun. Durmak da bir seçenek.' }
   ];

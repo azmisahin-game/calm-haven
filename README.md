@@ -1,33 +1,48 @@
 # 🌿 Calm Haven / Sakin Sığınak
 
-**Bilgi işlem ortamlarında tükenmişlik, boyun/baş ağrısı ve panik atak yaşayan
-insanlar için tasarlanmış, nörobiyolojik tabanlı bir "Dijital Sığınak".**
+**Yoğun iş ortamlarında çalışan, dikkatini toplamakta zorlanan ve dinlenmeye
+ihtiyaç duyan insanlar için tasarlanmış, görev ve skor baskısı olmayan dijital
+bir sığınak.**
 
 Burada skor yok, zaman kısıtı yok, envanter kaybı yok, ölüm yok, solan bitki yok.
 Bu bir oyun değil. Burası nefes alabildiğin bir alan.
 
 **Canlı Yayın:** https://azmisahin-game.github.io/calm-haven/
 
+> ⚠️ **Sağlık bilgisi:** Bu uygulama tıbbi bir cihaz değildir; tedavi, teşhis
+> veya profesyonel sağlık hizmeti yerine geçmez. Hiçbir biyometrik ölçüm
+> yapmaz. Nefes egzersizleri bazı kişilerde baş dönmesi veya rahatsızlık
+> yaratabilir; rahatsızlık duyduğunuzda durun ve doğal nefesinize dönün.
+> Ayrıntı ve kaynaklar: [docs/SCIENCE-AND-SAFETY.md](docs/SCIENCE-AND-SAFETY.md)
+
 ---
 
 ## Neden var?
 
-Personelsiz, sürekli telefon ve bildirim baskısı olan bir masada çalışmak sinir
-sistemini sürekli "tehlike" modunda tutar. Kalp hızı yükselir, nefes yüzeyselleşir,
-omuzlar kulaklara doğru çekilir. Sakin Sığınak bu döngüyü kırmak için üç kanıta
-dayalı aracı tek bir ekranda birleştirir.
+Sürekli telefon, bildirim ve kesintinin olduğu bir masada çalışmak dikkati
+dağıtır ve dinlenmeyi zorlaştırır. Sakin Sığınak bunun için üç şeyi tek ekranda
+birleştirir: isteğe bağlı bir nefes ritmi, prosedürel doğa sesleri ve bakması
+dinlendirici bir 3B sahne. Hiçbiri zorunlu değildir.
 
-### Bilimsel dayanaklar
+### Bilimsel dayanaklar — ne biliyoruz, ne bilmiyoruz
 
-| Mekanizma | Kaynak | Uygulamadaki yeri |
-|---|---|---|
-| Fizyolojik İçe Çekiş (Cyclic Sighing) | Balban, Spiegel, Huberman vd., *Cell Reports Medicine*, Ocak 2023 | "Sakinleş" butonu / `P` tuşu |
-| Rezonans Frekansı (4 sn Al / 6 sn Ver) | HRV araştırmaları, vagal frenleme | Varsayılan nefes ritmi |
-| Dikkat Yenileme Teorisi (ART) | Kaplan & Kaplan, 1989/1995 | Yumuşak büyülenme sağlayan yaşayan orman |
-| Kahverengi Gürültü (Brown Noise) | 1/f² spektral yoğunluk | Ofis gürültüsünü maskeleyen prosedürel ses |
-| Çift Yönlü Biofeedback | Nefes hızı değişkenliği geri bildirimi | Nefesiniz dünyayı aydınlatır ve sakinleştirir |
+Aşağıdaki tablo, uygulamadaki tercihlerin **hangi kaynağa dayandığını** ve
+**o kaynağın neyi göstermediğini** birlikte verir. Uygulama bu araştırmaların
+kendisi değildir ve buradaki hiçbir ifade kişisel bir tıbbi sonuç vaadi değildir.
 
----
+| Uygulamadaki tercih | Dayanak | Kaynağın gerçekte gösterdiği | Göstermediği |
+|---|---|---|---|
+| İçe çekiş ritmi (çift alış + uzun veriş) | Balban vd., *Cell Reports Medicine*, 2023 | 108 katılımcı, 28 gün, günde 5 dk. Çift alış + uzun veriş yapan grup **pozitif duygudurumda** ve **solunum hızı düşüşünde** diğer gruplardan daha iyiydi (p<0,05). | **Kaygı ölçümünde gruplar arasında fark bulunmadı**; istirahat kalp hızı ve HRV değişmedi. "En hızlı kaygı giderici" değildir. |
+| Varsayılan 4 sn al / 6 sn ver ritmi | Verişin alıştan uzun olduğu yavaş ritimler (ör. 1:2 oranı) | 1:2 oranı çalışmada kullanılan orandır ve verişe ağırlık verir. | Belirli bir "rezonans frekansı" kişiye göre değişir; **herkes için ideal olduğu gösterilmemiştir.** Bu ritim sadece bir seçenektir. |
+| Dikkat Yenileme Teorisi (ART) | Kaplan & Kaplan, 1989/1995 | Doğa görüntüleri "yumuşak büyülenme" yoluyla dikkati yenileyebilir. | Bu bir kuramdır; bu uygulamanın ölçülmüş bir dikkat iyileştirmesi sağladığı gösterilmemiştir. |
+| Kahverengi gürültü | 1/f² spektral yoğunluk | Düşük frekanslı gürültü konuşma sesini maskeleyebilir. | Kaygı veya uyku üzerinde kalıcı klinik etki kanıtlanmamıştır. |
+
+**Uygulama neyi ölçmez:** Nefesinizi, kalp hızınızı, kalp hızı değişkenliğinizi,
+oksijeninizi veya herhangi bir fizyolojik sinyali **ölçmez**. Kamera, mikrofon ve
+sensör kullanmaz. Ekrandaki halka sabit zamanlı bir animasyondur; sizin nefesinize
+göre ayarlanmaz. Bu nedenle burada "biofeedback" yoktur — yalnızca **nefes
+ritmiyle senkronize görsel geri bildirim** vardır.
+
 
 ## Yaşayan Dünya (2.0)
 

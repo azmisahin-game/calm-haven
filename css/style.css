@@ -209,12 +209,20 @@ body {
 .breath-zone {
   display: grid;
   justify-items: center;
-  gap: 18px;
+  align-content: center;
+  gap: 12px;
+  /* Satır yüksekliğine sığmak zorunda: içerik taşarsa üst bar/HUD ile çakışır */
+  height: 100%;
+  min-height: 0;
 }
 
 .breath-ring {
-  width: clamp(160px, 26vmin, 280px);
+  /* Halka, görünümün kullanılabilir yüksekliğinden türetilir. Yüzde
+     kullanmak grid satırı otomatik yükseklikteyken çöker (0'a iner). */
+  height: clamp(72px, min(30vh, 30vw), 300px);
+  width: auto;
   aspect-ratio: 1;
+  max-width: 100%;
   border-radius: 50%;
   background:
     radial-gradient(circle at 50% 45%,
@@ -255,6 +263,43 @@ body {
   font-size: 0.78rem;
   letter-spacing: 0.22em;
   color: var(--mist-dim);
+}
+
+.breath-note {
+  margin: 2px 0 0;
+  max-width: 34ch;
+  text-align: center;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--mist-dim);
+}
+
+.breath-stop {
+  min-height: var(--touch);
+  margin-top: 6px;
+  padding: 0 20px;
+  border: 1px solid var(--glass-brd);
+  border-radius: 999px;
+  background: var(--glass-bg);
+  color: var(--mist);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 220ms var(--ease-calm);
+}
+
+.breath-stop:hover {
+  background: rgba(226, 240, 235, 0.12);
+}
+
+.breath-stop:focus-visible {
+  outline: 2px solid var(--island-green);
+  outline-offset: 3px;
+}
+
+.breath-stop[hidden] {
+  display: none;
 }
 
 /* ---------- Mesaj kartı ---------- */
@@ -785,6 +830,38 @@ input[type="range"]:focus-visible {
   color: var(--mist-dim);
 }
 
+.veil-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.veil-hint {
+  font-size: 0.74em;
+  opacity: 0.7;
+  letter-spacing: 0.02em;
+}
+
+.veil-disclaimer {
+  max-width: 46ch;
+  margin: 16px auto 0;
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--mist-dim);
+}
+
+.enter-btn.ghost {
+  background: transparent;
+  border-color: var(--glass-brd);
+  color: var(--mist);
+}
+
+.enter-btn.ghost:hover {
+  background: rgba(226, 240, 235, 0.1);
+  box-shadow: none;
+}
+
 .enter-btn {
   min-height: var(--touch);
   padding: 0 34px;
@@ -869,12 +946,12 @@ input[type="range"]:focus-visible {
   }
 
   .breath-zone {
-    gap: 6px;
+    gap: 4px;
   }
 
   .breath-ring {
-    /* Çok kısa yatay ekranlarda halka küçülmeli, yoksa sahne taşar */
-    width: clamp(64px, 20vh, 124px);
+    /* Kısa ekranda halka yükseklikten küçülür */
+    height: clamp(64px, min(22vh, 26vw), 120px);
   }
 
   .breath-text {
@@ -884,6 +961,12 @@ input[type="range"]:focus-visible {
 
   .breath-counter {
     font-size: 0.66rem;
+  }
+
+  /* Çok kısa ekranda açıklama metni yer kaplamasın; aynı bilgi
+     ayarlar panelinde ve erişilebilir açıklamada bulunur. */
+  .breath-note {
+    display: none;
   }
 
   .hud {

@@ -275,7 +275,9 @@
   function calmDown() {
     CalmAudio.unlock();
     CalmBreathing.startSigh();
-    showToast('Fizyolojik içe çekiş başladı: 3 tur boyunca nefesini takip et.');
+    // Durdurma düğmesi görünür olsun: kullanıcı her an çıkabilmeli
+    if (els.btnBreathStop) els.btnBreathStop.hidden = false;
+    showToast('İçe çekiş başladı. Rahatsızlık duyarsan durdur ve doğal nefesine dön.');
     if (els.statSteps) updateHud();
   }
 
@@ -744,8 +746,10 @@
       interact();
     }, { passive: true });
 
-    // Mobil/iOS: sayfa kaydırma ve çift dokunma yakınlaştırmayı engelle
-    document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+    // NOT: `gesturestart` üzerinde preventDefault çağrılmaz.
+    // Bu olay iOS Safari'de iki parmakla sayfa yakınlaştırmasını engeller ve
+    // az gören kullanıcılar için erişilebilirliği bozar. Sahne, dokunmayı
+    // sayfa yakınlaştırmasını kısıtlamadan da yönetebilir.
 
     // Görünürlük: arka planda zaman birikimini doğru say
     document.addEventListener('visibilitychange', function () {
@@ -848,7 +852,13 @@
 
     // İlk giriş perdesi
     if (els.btnEnter) {
-      els.btnEnter.addEventListener('click', enterHaven);
+      els.btnEnter.addEventListener('click', function () { enterHaven(false); });
+    }
+    if (els.btnEnterSilent) {
+      els.btnEnterSilent.addEventListener('click', function () { enterHaven(true); });
+    }
+    if (els.btnBreathStop) {
+      els.btnBreathStop.addEventListener('click', stopBreathing);
     }
 
     if (typeof window.matchMedia === 'function') {
@@ -877,7 +887,7 @@
 
     if (e.code === 'Space') {
       e.preventDefault();
-      if (entering) { enterHaven(); return; }
+      if (entering) { enterHaven(false); return; }
       setHolding(true);
       return;
     }
@@ -922,11 +932,19 @@
     }
   }
 
-  function enterHaven() {
+  // silent=true: kullanıcı sesi kapalı başlatmayı seçti
+  function enterHaven(silent) {
     if (!entering) return;
     entering = false;
 
-    CalmAudio.unlock();
+    if (silent) {
+      state.settings.audioEnabled = false;
+      CalmAudio.setEnabled(false);
+      saveState();
+      syncAudioButton();
+    } else {
+      CalmAudio.unlock();
+    }
 
     if (els.veil) {
       els.veil.classList.add('is-hidden');
@@ -937,7 +955,24 @@
 
     CalmBreathing.resume();
     interact();
-    showToast('Hoş geldin. Acele etmen gereken hiçbir şey yok.');
+    showToast(silent
+      ? 'Hoş geldin. Ses kapalı; istediğinde açabilirsin.'
+      : 'Hoş geldin. Acele etmen gereken hiçbir şey yok.');
+  }
+
+  // Nefes rehberini durdur ve doğal nefese dön.
+  // Cezalandırıcı değildir: rehber duraklar, sahne sakin kalır.
+  function stopBreathing() {
+    CalmBreathing.stop();
+    CalmWorld.onBreathIdle();
+    setBreathText('Kendi nefesinle kal...');
+    if (els.breathCounter) els.breathCounter.textContent = '';
+    if (els.btnBreathStop) els.btnBreathStop.hidden = true;
+    showToast('Nefes rehberi durdu. Doğal nefesinle kalabilirsin.');
+  }
+
+  function setBreathText(text) {
+    if (els.breathText) els.breathText.textContent = text;
   }
 
   function applyReducedMotion(value) {
@@ -958,6 +993,8 @@
     els.canvas3d = document.getElementById('scene-canvas');
     els.veil = document.getElementById('veil');
     els.btnEnter = document.getElementById('btn-enter');
+    els.btnEnterSilent = document.getElementById('btn-enter-silent');
+    els.btnBreathStop = document.getElementById('btn-breath-stop');
     els.breathRing = document.getElementById('breath-ring');
     els.breathText = document.getElementById('breath-text');
     els.breathCounter = document.getElementById('breath-counter');

@@ -1,0 +1,16 @@
+{
+  "name": "calm-haven-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Calm Haven geliştirme/CI test araçları. Üretim uygulaması bu dosyaya bağlı değildir; GitHub Pages yalnızca statik dosyaları yayınlar.",
+  "scripts": {
+    "test": "node tests/static-checks.js",
+    "test:static": "node tests/static-checks.js",
+    "test:browser": "bash tests/run-browser.sh",
+    "test:all": "node tests/static-checks.js && bash tests/run-browser.sh"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.0.0"
+  },
+  "license": "MIT"
+}

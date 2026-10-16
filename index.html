@@ -2,8 +2,8 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="description" content="Calm Haven / Sakin Sığınak — bilgi işlem ortamlarında tükenmişlik ve panik için nörobiyolojik tabanlı dijital sığınak. Nefes rehberi, prosedürel doğa sesleri ve sonsuz orman.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Calm Haven / Sakin Sığınak — yoğun iş ortamlarında nefes almak ve dinlenmek için tasarlanmış, görev ve skor baskısı olmayan dijital bir sığınak. İsteğe bağlı nefes ritmi, prosedürel doğa sesleri ve 3B orman.">
   <meta name="theme-color" content="#0f172a">
   <meta name="color-scheme" content="dark">
   <title>Calm Haven / Sakin Sığınak</title>
@@ -32,9 +32,9 @@
         <span class="ctrl-label">Kendi Akışına Bırak</span>
       </button>
 
-      <button type="button" id="btn-calm" class="ctrl-btn" aria-label="Sakinleş: fizyolojik içe çekiş nefesine başla">
+      <button type="button" id="btn-calm" class="ctrl-btn" aria-label="İçe çekiş ritmini başlat: çift alış ve uzun veriş">
         <span class="ctrl-icon" aria-hidden="true">🫁</span>
-        <span class="ctrl-label">Sakinleş</span>
+        <span class="ctrl-label">İçe Çekiş</span>
       </button>
 
       <button type="button" id="btn-audio" class="ctrl-btn" aria-pressed="true"
@@ -54,9 +54,16 @@
   <main class="stage">
     <!-- Nefes halkası -->
     <section class="breath-zone" aria-label="Nefes rehberi">
-      <div class="breath-ring" id="breath-ring" role="img" aria-label="Nefes halkası"></div>
+      <div class="breath-ring" id="breath-ring" role="img" aria-label="Nefes ritmini gösteren halka"></div>
       <p class="breath-text" id="breath-text" aria-live="polite">Nefes al...</p>
       <p class="breath-counter" id="breath-counter" aria-live="off"></p>
+      <p class="breath-note" id="breath-note">
+        Ritmi takip etmek zorunda değilsin. Doğal nefesinle de kalabilirsin.
+      </p>
+      <button type="button" class="breath-stop" id="btn-breath-stop" hidden
+              aria-label="Nefes rehberini durdur ve doğal nefesine dön">
+        Rehberi Durdur
+      </button>
     </section>
 
     <!-- Şefkatli mesaj kartı: sahne ızgarasının alt satırı,
@@ -204,11 +211,24 @@
       <p class="veil-mark" aria-hidden="true">🌿</p>
       <h2 class="veil-title">Sakin Sığınak</h2>
       <p class="veil-text">
-        Burada skor yok, süre baskısı yok, kayıp yok.<br>
+        Burada görev yok, skor yok, süre baskısı yok.<br>
         Sadece nefesin ve senin ormanın var.
       </p>
-      <button type="button" id="btn-enter" class="enter-btn">Sığınağa Gir</button>
-      <p class="veil-note">İlk dokunuşta nefes rehberi ve ses başlar.</p>
+      <div class="veil-actions">
+        <button type="button" id="btn-enter" class="enter-btn">
+          Sığınağa Gir <span class="veil-hint">(ses açık)</span>
+        </button>
+        <button type="button" id="btn-enter-silent" class="enter-btn ghost">
+          Sessiz Gir <span class="veil-hint">(ses kapalı)</span>
+        </button>
+      </div>
+      <p class="veil-note">
+        Nefes rehberi isteğe bağlıdır; istediğin an durdurabilirsin.
+      </p>
+      <p class="veil-disclaimer">
+        Bu uygulama tıbbi bir cihaz değildir; tedavi veya profesyonel yardım yerine
+        geçmez. Nefes egzersizi rahatsızlık verirse dur ve doğal nefesine dön.
+      </p>
     </div>
   </div>
 

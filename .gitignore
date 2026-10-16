@@ -1,0 +1,3 @@
+# Test bagimliliklari (yalnizca gelistirme/CI). Uretim sitesi bunlara bagli degildir.
+node_modules/
+package-lock.json
