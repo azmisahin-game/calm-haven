@@ -240,6 +240,7 @@ const CalmForest = (function () {
   function makeFirefly() {
     return {
       wx: 0,
+      parallax: 0.9,
       y: rand(0.5, 0.82) * H,
       phase: rand(0, Math.PI * 2),
       freq: rand(0.35, 0.9),
@@ -262,7 +263,9 @@ const CalmForest = (function () {
     const span = W + margin * 2;
     for (let i = 0; i < layer.length; i++) {
       const it = layer[i];
-      const sx = it.wx - camera * it.parallax;
+      // parallax tanımsız olan katmanlar kamera ile 1:1 hareket eder
+      const px = typeof it.parallax === 'number' ? it.parallax : 1;
+      const sx = it.wx - camera * px;
       if (sx < -margin) {
         it.wx += span;
       }
@@ -619,7 +622,7 @@ const CalmForest = (function () {
     if (!milestones[500]) return;
     for (let i = 0; i < fireflies.length; i++) {
       const f = fireflies[i];
-      const sx = f.wx - camera * 0.9 + Math.sin(time * f.freq + f.phase) * f.driftX;
+      const sx = f.wx - camera * f.parallax + Math.sin(time * f.freq + f.phase) * f.driftX;
       const sy = f.y + Math.cos(time * f.freq * 0.7 + f.phase) * f.driftY;
       const a = 0.35 + Math.sin(time * 1.6 + f.phase * 2) * 0.3;
       drawGlow(glowGreen, sx, sy, f.size * 2.6, Math.max(0.08, a) * 0.55);
