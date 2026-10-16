@@ -52,6 +52,15 @@ body {
   height: 100%;
 }
 
+html[data-theme="island"] {
+  --night-blue: #2b1f3d;
+  --night-deep: #1a1226;
+  --glass-bg: rgba(43, 26, 38, 0.55);
+  --ink: #ffeede;
+  --mist: rgba(255, 232, 208, 0.78);
+  --mist-dim: rgba(255, 232, 208, 0.5);
+}
+
 body {
   margin: 0;
   background:
@@ -64,6 +73,7 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
   overscroll-behavior: none;
+  transition: background 1200ms var(--ease-calm), color 1200ms var(--ease-calm);
 }
 
 /* Görsel alan */
@@ -351,6 +361,13 @@ body {
   font-size: 0.74rem;
   color: var(--mist-dim);
   line-height: 1.9;
+}
+
+.settings-note {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--mist-dim);
 }
 
 kbd {

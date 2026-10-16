@@ -146,6 +146,118 @@ const CalmAudio = (function () {
     rainSource.start(0);
   }
 
+  /* ---------- Kısa prosedürel olay sesleri ---------- */
+
+  // Tek seferlik gürültü patlaması tamponu (yeniden kullanılır)
+  let burstBuffer = null;
+  function getBurstBuffer() {
+    if (burstBuffer) return burstBuffer;
+    const len = Math.floor(ctx.sampleRate * 0.12);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const t = i / ctx.sampleRate;
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 42);
+    }
+    burstBuffer = buf;
+    return buf;
+  }
+
+  function canPlay() {
+    return !!(ctx && started && enabled && master && level > 0);
+  }
+
+  // Yumuşak, çok düşük seviyeli tek seferlik ses gönder
+  function fire(buffer, filterType, frequency, q, peak, pan) {
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = filterType;
+    filter.frequency.value = frequency;
+    filter.Q.value = q;
+
+    const gain = ctx.createGain();
+    const now = ctx.currentTime;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(peak, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
+
+    src.connect(filter);
+    if (typeof ctx.createStereoPanner === 'function') {
+      const p = ctx.createStereoPanner();
+      p.pan.value = pan || 0;
+      filter.connect(p);
+      p.connect(gain);
+    } else {
+      filter.connect(gain);
+    }
+    gain.connect(master);
+
+    src.start(now);
+    src.stop(now + 0.4);
+    return src;
+  }
+
+  // Ayak sesi: kısa gürültü patlaması + alçak geçiren
+  function footstep() {
+    if (!canPlay()) return false;
+    fire(getBurstBuffer(), 'lowpass', 380, 0.7, 0.09 * level, rand(-0.35, 0.35));
+    return true;
+  }
+
+  // Yaprak hışırtısı: bant geçiren, hafif tiz
+  function rustle() {
+    if (!canPlay()) return false;
+    fire(getBurstBuffer(), 'bandpass', 2000, 0.9, 0.05 * level, rand(-0.6, 0.6));
+    return true;
+  }
+
+  // Kuş cıvıltısı: sinüs + FM modülasyonu, 2-3 kısa hece
+  function chirp() {
+    if (!canPlay()) return false;
+
+    const notes = 2 + Math.floor(Math.random() * 2);
+    const base = rand(1600, 2600);
+    const now = ctx.currentTime;
+
+    for (let i = 0; i < notes; i++) {
+      const start = now + i * 0.09;
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      const f = base * (1 + (Math.random() - 0.5) * 0.25);
+      osc.frequency.setValueAtTime(f, start);
+      osc.frequency.exponentialRampToValueAtTime(f * rand(1.15, 1.5), start + 0.06);
+
+      // FM: hafif vibrato
+      const mod = ctx.createOscillator();
+      mod.type = 'sine';
+      mod.frequency.value = rand(22, 40);
+      const modGain = ctx.createGain();
+      modGain.gain.value = rand(30, 80);
+      mod.connect(modGain);
+      modGain.connect(osc.frequency);
+
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, start);
+      g.gain.linearRampToValueAtTime(0.04 * level, start + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, start + 0.12);
+
+      osc.connect(g);
+      g.connect(master);
+
+      osc.start(start);
+      osc.stop(start + 0.16);
+      mod.start(start);
+      mod.stop(start + 0.16);
+    }
+    return true;
+  }
+
+  function rand(min, max) {
+    return min + Math.random() * (max - min);
+  }
+
   /* ---------- Yaşam döngüsü ---------- */
 
   function supported() {
@@ -269,7 +381,10 @@ const CalmAudio = (function () {
     isEnabled: isEnabled,
     isRunning: isRunning,
     getEnergy: getEnergy,
-    supported: supported
+    supported: supported,
+    footstep: footstep,
+    rustle: rustle,
+    chirp: chirp
   };
 
   return api;

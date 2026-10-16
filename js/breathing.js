@@ -38,12 +38,18 @@ const CalmBreathing = (function () {
   let timerId = null;
   let remaining = 0;
   let deadline = 0;
+  let phaseStartedAt = 0;
+  let phaseDuration = 0;
 
   let resonancePhase = 'inhale';
   let sighCycle = 1;
   let sighStep = 0;
 
   let onChange = null;
+  let onProgress = null;
+  let onSighStep = null;
+  let exhaleEndCb = null;
+  let rafId = null;
 
   /* ---------- Görsel yardımcılar ---------- */
 
@@ -80,9 +86,37 @@ const CalmBreathing = (function () {
 
   function schedule(duration) {
     remaining = duration;
-    deadline = performance.now() + duration * 1000;
+    phaseDuration = duration;
+    phaseStartedAt = performance.now();
+    deadline = phaseStartedAt + duration * 1000;
     clearTimer();
     timerId = setTimeout(tick, duration * 1000);
+  }
+
+  // Faz ilerlemesini (0→1) her karede bildir.
+  // Dünya senkronizasyonu bu sinyalle beslenir; bu yüzden kendi rAF döngüsü vardır.
+  function progressLoop() {
+    rafId = null;
+    if (!running) return;
+
+    if (phaseDuration > 0 && onProgress) {
+      const elapsed = (performance.now() - phaseStartedAt) / 1000;
+      const p = Math.max(0, Math.min(1, elapsed / phaseDuration));
+      onProgress(mode === 'sigh' ? 'sigh' : resonancePhase, p);
+    }
+
+    rafId = requestAnimationFrame(progressLoop);
+  }
+
+  function startProgressLoop() {
+    if (rafId === null) rafId = requestAnimationFrame(progressLoop);
+  }
+
+  function stopProgressLoop() {
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
   }
 
   /* ---------- Rezonans akışı ---------- */
@@ -114,6 +148,7 @@ const CalmBreathing = (function () {
     applyCounter('İçe çekiş ' + sighCycle + ' / ' + cfg.cycles);
 
     onPhaseChange();
+    if (onSighStep) onSighStep(sighStep, sighCycle);
 
     schedule(step.duration);
   }
@@ -147,12 +182,18 @@ const CalmBreathing = (function () {
     if (!running) return;
 
     if (mode === 'sigh') {
+      // İçe çekişte 3. adım (indeks 2) veriştir
+      const wasExhale = sighStep === BREATH_MODES.sigh.steps.length - 1;
       advanceSigh();
+      if (wasExhale && exhaleEndCb) exhaleEndCb();
       return;
     }
 
+    const completedPhase = resonancePhase;
     resonancePhase = resonancePhase === 'inhale' ? 'exhale' : 'inhale';
     runResonancePhase();
+
+    if (completedPhase === 'exhale' && exhaleEndCb) exhaleEndCb();
   }
 
   function onPhaseChange() {
@@ -165,6 +206,7 @@ const CalmBreathing = (function () {
     if (next !== 'resonance' && next !== 'sigh') return;
     opts = opts || {};
     clearTimer();
+    stopProgressLoop();
 
     mode = next;
 
@@ -173,12 +215,14 @@ const CalmBreathing = (function () {
       sighStep = 0;
       running = true;
       runSighStep();
+      startProgressLoop();
       return;
     }
 
     resonancePhase = 'inhale';
     running = true;
     runResonancePhase();
+    startProgressLoop();
 
     if (opts.active && onChange) {
       onChange({ mode: mode, phase: resonancePhase, auto: true });
@@ -195,6 +239,7 @@ const CalmBreathing = (function () {
       remaining = Math.max(0, (deadline - performance.now()) / 1000);
       clearTimer();
     }
+    stopProgressLoop();
     running = false;
   }
 
@@ -214,6 +259,7 @@ const CalmBreathing = (function () {
       applyRing(isInhale ? cfg.scale.inhale : cfg.scale.exhale, remaining || duration);
       schedule(remaining || duration);
     }
+    startProgressLoop();
   }
 
   function setReducedMotion(value) {
@@ -228,6 +274,8 @@ const CalmBreathing = (function () {
     options = options || {};
     reducedMotion = !!options.reducedMotion;
     onChange = options.onChange || null;
+    onProgress = options.onProgress || null;
+    onSighStep = options.onSighStep || null;
 
     setMode(options.mode === 'sigh' ? 'sigh' : 'resonance');
     return api;
@@ -235,6 +283,16 @@ const CalmBreathing = (function () {
 
   function getMode() {
     return mode;
+  }
+
+  function getPhase() {
+    return mode === 'sigh' ? 'sigh' : resonancePhase;
+  }
+
+  // Bir sonraki veriş fazı tamamlandığında çağrılacak kancayı ayarlar.
+  // "Nefesle yürü" modu her verişte bir adım atmak için bunu kullanır.
+  function onExhaleEnd(cb) {
+    exhaleEndCb = cb;
   }
 
   const api = {
@@ -245,6 +303,8 @@ const CalmBreathing = (function () {
     resume: resume,
     setReducedMotion: setReducedMotion,
     getMode: getMode,
+    getPhase: getPhase,
+    onExhaleEnd: onExhaleEnd,
     MODES: BREATH_MODES
   };
 

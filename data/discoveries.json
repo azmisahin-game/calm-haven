@@ -1,0 +1,38 @@
+[
+  {
+    "id": "shooting_star",
+    "name": "Kayan Yıldız",
+    "type": "sky",
+    "chance": 0.02,
+    "cooldown": 240,
+    "duration": 1.6,
+    "message": "Bir kayan yıldız geçti. Bu an sadece senin."
+  },
+  {
+    "id": "heron",
+    "name": "Balıkçıl",
+    "type": "water",
+    "chance": 0.015,
+    "cooldown": 420,
+    "duration": 16,
+    "message": "Suda bir balıkçıl duruyor. Hiçbir yere gitmesi gerekmiyor."
+  },
+  {
+    "id": "butterfly",
+    "name": "Kelebek",
+    "type": "foreground",
+    "chance": 0.03,
+    "cooldown": 100,
+    "duration": 9,
+    "message": "Bir kelebek yoldan geçti. Onu tutman gerekmiyor."
+  },
+  {
+    "id": "firefly",
+    "name": "Ateş Böceği",
+    "type": "midground",
+    "chance": 0.04,
+    "cooldown": 70,
+    "duration": 7,
+    "message": "Ağaçların arasında bir ateş böceği parlıyor."
+  }
+]

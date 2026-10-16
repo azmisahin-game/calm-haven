@@ -28,7 +28,9 @@
       audioEnabled: true,
       audioLevel: 0.45,
       walkSpeed: 0.45,
-      breathMode: 'resonance'
+      breathMode: 'resonance',
+      theme: 'forest',
+      breathWalk: false
     }
   };
 
@@ -40,6 +42,11 @@
   let settingsOpen = false;
   let reducedMotion = false;
   let entering = true;
+
+  // Ses olaylarının seyrekliği: ayak sesi çok sık olmasın
+  let lastStepSound = 0;
+  let lastRustle = 0;
+  let nextChirpAt = 0;
 
   /* ---------- Yardımcılar ---------- */
 
@@ -178,12 +185,46 @@
     accumulators.steps += px * STEPS_PER_PIXEL;
 
     const whole = Math.floor(accumulators.steps);
-    if (whole <= 0) return;
+    if (whole <= 0) {
+      emitWalkSounds(px);
+      return;
+    }
 
     accumulators.steps -= whole;
     state.steps += whole;
     if (checkMilestones()) saveState();
     updateHud();
+    emitWalkSounds(px);
+  }
+
+  // Yürürken çok hafif işitsel geri bildirim: ayak sesi + yaprak hışırtısı.
+  // Seviyeler düşüktür ve seyrek çalar; amaç dikkat çekmek değil, temas hissi.
+  function emitWalkSounds(px) {
+    if (!CalmAudio.isRunning()) return;
+
+    const now = performance.now();
+
+    // Kat edilen mesafeye göre ayak sesi sıklığı (yaklaşık her 34 px)
+    if (px >= 2 && now - lastStepSound > 170) {
+      lastStepSound = now;
+      CalmAudio.footstep();
+    }
+
+    if (now - lastRustle > 900 && Math.random() < 0.5) {
+      lastRustle = now;
+      CalmAudio.rustle();
+    }
+
+    // Nadir kuş cıvıltısı: ortalama 45-90 saniyede bir
+    if (nextChirpAt === 0) nextChirpAt = now + randRange(45000, 90000);
+    if (now > nextChirpAt) {
+      CalmAudio.chirp();
+      nextChirpAt = now + randRange(45000, 90000);
+    }
+  }
+
+  function randRange(min, max) {
+    return min + Math.random() * (max - min);
   }
 
   /* ---------- Etkileşim ---------- */
@@ -249,6 +290,23 @@
     saveState();
   }
 
+  function setTheme(theme) {
+    if (theme !== 'forest' && theme !== 'island') return;
+    state.settings.theme = theme;
+    CalmWorld.setTheme(theme);
+    CalmForest.setTheme(theme);
+    document.documentElement.setAttribute('data-theme', theme);
+    if (els.themeBtns) {
+      els.themeBtns.forEach(function (btn) {
+        btn.setAttribute('aria-checked', String(btn.dataset.theme === theme));
+      });
+    }
+    saveState();
+    showToast(theme === 'island'
+      ? 'Issız ada: gün batımı, kum ve dalgalar.'
+      : 'Orman: gece mavisi, çam kokusu ve dere.');
+  }
+
   function applyWalkSpeed(value) {
     const v = clamp(Number(value) / 100, 0.1, 1);
     state.settings.walkSpeed = v;
@@ -270,11 +328,50 @@
         btn.setAttribute('aria-checked', String(btn.dataset.mode === s.breathMode));
       });
     }
+    if (els.themeBtns) {
+      els.themeBtns.forEach(function (btn) {
+        btn.setAttribute('aria-checked', String(btn.dataset.theme === s.theme));
+      });
+    }
 
     CalmForest.setBaseSpeed(BASE_SPEED * s.walkSpeed);
 
     if (s.breathMode === 'sigh') CalmBreathing.setMode('sigh');
     else CalmBreathing.setMode('resonance');
+
+    syncBreathWalkButton();
+  }
+
+  /* ---------- Nefesle yürü (ritüel modu) ---------- */
+
+  // Açıkken her nefes verişinde bir adım atılır; kullanıcı tuşa basmak zorunda kalmaz.
+  function setBreathWalk(value) {
+    state.settings.breathWalk = !!value;
+    syncBreathWalkButton();
+    saveState();
+    showToast(state.settings.breathWalk
+      ? 'Nefesle yürü açık: her verişte bir adım atacaksın. Tuşa basman gerekmiyor.'
+      : 'Nefesle yürü kapalı.');
+  }
+
+  function syncBreathWalkButton() {
+    if (!els.btnBreathWalk) return;
+    const on = !!state.settings.breathWalk;
+    els.btnBreathWalk.setAttribute('aria-pressed', String(on));
+    const label = els.btnBreathWalk.querySelector('.ctrl-label');
+    if (label) label.textContent = on ? 'Nefesle Yürü: Açık' : 'Nefesle Yürü';
+  }
+
+  // Nefes motoru her veriş sonunda çağırır
+  function onExhaleStep() {
+    if (!state.settings.breathWalk) return;
+    // Bir "adım" doğrudan kamerayı ilerletir ve adım sayacına eklenir.
+    const stepPx = 26;
+    CalmForest.stepForward(stepPx);
+    state.steps += Math.round(stepPx * STEPS_PER_PIXEL);
+    if (checkMilestones()) saveState();
+    updateHud();
+    if (CalmAudio.isRunning()) CalmAudio.footstep();
   }
 
   /* ---------- Ayrılmış bölgeler ---------- */
@@ -386,6 +483,18 @@
       });
     }
 
+    if (els.themeBtns) {
+      els.themeBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () { setTheme(btn.dataset.theme); });
+      });
+    }
+
+    if (els.btnBreathWalk) {
+      els.btnBreathWalk.addEventListener('click', function () {
+        setBreathWalk(!state.settings.breathWalk);
+      });
+    }
+
     // Ayarlar paneli dışına tıklayınca kapan
     document.addEventListener('pointerdown', function (e) {
       if (!settingsOpen) return;
@@ -470,6 +579,10 @@
     CalmForest.setReducedMotion(reducedMotion);
     CalmBreathing.setReducedMotion(reducedMotion);
     CalmMessages.setReducedMotion(reducedMotion);
+    CalmWorld.setReducedMotion(reducedMotion);
+    if (typeof CalmDiscovery !== 'undefined' && CalmDiscovery) {
+      CalmDiscovery.setReducedMotion(reducedMotion);
+    }
   }
 
   /* ---------- Başlatma ---------- */
@@ -496,6 +609,8 @@
     els.statNext = document.getElementById('stat-next');
     els.toast = document.getElementById('toast');
     els.segBtns = Array.prototype.slice.call(document.querySelectorAll('.seg-btn'));
+    els.themeBtns = Array.prototype.slice.call(document.querySelectorAll('.theme-btn'));
+    els.btnBreathWalk = document.getElementById('btn-breath-walk');
 
     reducedMotion = prefersReducedMotion();
 
@@ -506,28 +621,47 @@
       level: state.settings.audioLevel
     });
 
+    CalmWorld.init({
+      theme: state.settings.theme,
+      reducedMotion: reducedMotion
+    });
+    document.documentElement.setAttribute('data-theme', state.settings.theme);
+
     CalmForest.init(els.canvas, {
       reducedMotion: reducedMotion,
       baseSpeed: BASE_SPEED * state.settings.walkSpeed,
+      theme: state.settings.theme,
       onAdvance: function (px) { accumulate(px); }
     });
     CalmForest.attachGlobalListeners();
     CalmForest.setMilestones(state.milestones);
 
+    // Nefes motoru → dünya senkronizasyonu ve ritüel adım
     CalmBreathing.init({
       ring: els.breathRing,
       text: els.breathText,
       counter: els.breathCounter
     }, {
       mode: state.settings.breathMode,
-      reducedMotion: reducedMotion
+      reducedMotion: reducedMotion,
+      onProgress: function (phase, progress) { CalmWorld.onBreath(phase, progress); },
+      onSighStep: function (stepIndex) { CalmWorld.onSighStep(stepIndex); }
     });
+    CalmBreathing.onExhaleEnd(onExhaleStep);
     CalmBreathing.pause(); // Perde kalkınca başlar
 
     await CalmMessages.init(
       { card: els.messageCard, text: els.messageText },
       { reducedMotion: reducedMotion, intervalMs: 15000 }
     );
+
+    await CalmDiscovery.init({
+      reducedMotion: reducedMotion,
+      onDiscover: function (name, message) {
+        // Keşif yalnızca bir an'dır: kullanıcıdan hiçbir şey istenmez
+        showToast(message);
+      }
+    });
 
     applySettingsToUI();
     updateHud();

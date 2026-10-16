@@ -23,16 +23,43 @@ dayalı aracı tek bir ekranda birleştirir.
 |---|---|---|
 | Fizyolojik İçe Çekiş (Cyclic Sighing) | Balban, Spiegel, Huberman vd., *Cell Reports Medicine*, Ocak 2023 | "Sakinleş" butonu / `P` tuşu |
 | Rezonans Frekansı (4 sn Al / 6 sn Ver) | HRV araştırmaları, vagal frenleme | Varsayılan nefes ritmi |
-| Dikkat Yenileme Teorisi (ART) | Kaplan & Kaplan, 1989/1995 | Yumuşak büyülenme sağlayan fraktal orman hareketi |
+| Dikkat Yenileme Teorisi (ART) | Kaplan & Kaplan, 1989/1995 | Yumuşak büyülenme sağlayan yaşayan orman |
 | Kahverengi Gürültü (Brown Noise) | 1/f² spektral yoğunluk | Ofis gürültüsünü maskeleyen prosedürel ses |
+| Çift Yönlü Biofeedback | Nefes hızı değişkenliği geri bildirimi | Nefesiniz dünyayı aydınlatır ve sakinleştirir |
+
+---
+
+## Yaşayan Dünya (2.0)
+
+Sahne hiçbir zaman tamamen durmaz. Sis, ışık, su parıltısı, bulutlar ve düşen
+yapraklar sürekli hafif hareket halindedir; ama hiçbiri dikkat istemez.
+
+**Dünya sizinle nefes alır.** Nefes alırken sis dağılır, ay ışığı parlar, su
+yüzeyi parıldar; verirken dünya yumuşar ve dinginleşir. Fizyolojik içe çekişte
+sahne "nefes alır gibi" genişler ve bırakışta rahatlar.
+
+**İşitsel geri bildirim.** Yürürken çok hafif ayak sesi ve yaprak hışırtısı
+duyulur; nadiren bir kuş cıvıldar. Tüm seviyeler düşüktür — amaç dikkat çekmek
+değil, toprakla temas hissi.
+
+**Keşifler.** Kayan yıldız, balıkçıl, kelebek ve ateş böceği rastgele belirir.
+Yakalamak, tıklamak veya yetişmek gerekmez. Kaçırılan bir an yoktur: görülmezse
+sadece kaybolur ve başka bir zamanda yeniden gelir.
+
+**Nefesle Yürü.** Ayarlardan açılır. Her nefes verişinde bir adım atılır; tuşa
+basmanız gerekmez. Yürümek bir ritüele dönüşür ve RSI riski ortadan kalkar.
+
+**İki ortam.** 🌲 **Orman** (gece mavisi, çam, dere) ve 🏝️ **Issız Ada**
+(gün batımı, palmiye, okyanus dalgaları).
 
 ---
 
 ## Öne çıkan ilkeler
 
 - **Sıfır ceza, sıfır kayıp.** Hiçbir şey elinden alınmaz, geri sayım yoktur.
-- **Çabasız faillik.** Tıklama, `Space` basılı tutma ya da
-  **"Kendi Akışına Bırak"** otomatik gezinti ile tekrarlayan zorlanma (RSI) yaratmaz.
+- **Çabasız faillik.** Tıklama, `Space` basılı tutma, otomatik gezinti veya
+  **Nefesle Yürü** ile tekrarlayan zorlanma (RSI) yaratmaz.
+- **Yaşayan ama sakin.** Sahne asla donmaz, ama sizden hiçbir şey istemez.
 - **Zero-Asset Failure.** Harici `.mp3` veya görsel yoktur. Sesler **Web Audio API**
   ile sentezlenir, görseller saf **Canvas** ve **CSS** ile çizilir.
 - **Tamamen Türkçe.** Arayüz, mesajlar ve nefes rehberi.
@@ -69,7 +96,27 @@ python3 -m http.server 8000
 | Sesi aç / kapat | `M` **veya** üst bardaki ses düğmesi |
 | Ayarlar | `Esc` |
 
+Ayarlar panelinden ayrıca **Nefesle Yürü**, **ortam teması** (Orman / Issız Ada),
+ses düzeyi ve yürüyüş hızı seçilebilir.
+
 Tüm düğmeler en az 48×48 piksel dokunma alanına sahiptir.
+
+---
+
+## Gizlilik
+
+**Bu uygulama hiçbir kişisel sağlık verisi toplamaz, saklamaz veya paylaşmaz.**
+Sunucu yoktur, hesap yoktur, analitik yoktur, çerez yoktur. Hiçbir veri cihazdan
+çıkmaz.
+
+Tarayıcının `localStorage` alanında yalnızca şu teknik ilerleme tutulur
+(`calm_haven_data_v1` anahtarı): adım sayısı, toplam süre, açılan gelişmeler,
+son ziyaret tarihi ve ses/hız/tema tercihleri. Bu veri sizin tarayıcınızdadır;
+"İlerlemeyi Sıfırla" düğmesi veya tarayıcı verilerini temizlemekle silinir.
+
+Bu proje, tükenmişlik sendromu yaşayan bireyler için tasarlanmıştır. Tanıtım
+metinlerindeki semptom ifadeleri (boyun/baş ağrısı, panik, tükenmişlik) genel
+hedef kullanıcı profilini tanımlar; gerçek bir kişiye ait sağlık kaydı içermez.
 
 ---
 
@@ -100,11 +147,15 @@ calm-haven/
 │   └── animations.css             # Nefes ve doğa keyframe'leri
 ├── js/
 │   ├── app.js                     # Durum, LocalStorage, klavye/dokunma
-│   ├── canvas.js                  # Sonsuz orman/ada yürüyüşü
-│   ├── audio.js                   # Web Audio: brown noise & yağmur
+│   ├── canvas.js                  # Yaşayan orman/ada, temalar
+│   ├── world.js                   # Dünya durumu, nefes senkronizasyonu
+│   ├── audio.js                   # Web Audio: brown noise, ayak sesi, kuş
 │   ├── breathing.js               # Rezonans & fizyolojik içe çekiş
+│   ├── discovery.js               # Keşif motoru (kayan yıldız, balıkçıl...)
 │   └── messages.js                # Şefkatli mesaj çekici
-├── data/messages.json             # Somatik farkındalık mesajları (Türkçe)
+├── data/
+│   ├── messages.json              # Somatik farkındalık mesajları (Türkçe)
+│   └── discoveries.json           # Keşif tanımları
 ├── README.md
 └── LICENSE
 ```
