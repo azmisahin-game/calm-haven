@@ -27,6 +27,12 @@
   --touch: 48px;
   --gap: 12px;
 
+  /* Sabit üst bar ve HUD için ayrılan yükseklik.
+     Sahne bu alanların arasına yerleşir; böylece hiçbir öğe üst üste binmez.
+     Üst bar/HUD satır atlayıp büyüyebildiği için medya sorgularında güncellenir. */
+  --header-h: 78px;
+  --hud-h: 78px;
+
   /* Hareket */
   --ease-calm: cubic-bezier(0.4, 0, 0.2, 1);
   --dur-soft: 600ms;
@@ -169,10 +175,18 @@ body {
 
 .stage {
   position: fixed;
-  inset: 0;
+  top: var(--header-h);
+  right: 0;
+  bottom: var(--hud-h);
+  left: 0;
   z-index: 10;
   display: grid;
-  place-items: center;
+  /* Nefes alanı ortada, mesaj kartı altta: ikisi asla üst üste binmez */
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 0 0;
   pointer-events: none;
 }
 
@@ -180,7 +194,6 @@ body {
   display: grid;
   justify-items: center;
   gap: 18px;
-  transform: translateY(-4vh);
 }
 
 .breath-ring {
@@ -231,12 +244,9 @@ body {
 /* ---------- Mesaj kartı ---------- */
 
 .message-card {
-  position: fixed;
-  left: 50%;
-  bottom: clamp(84px, 13vh, 132px);
-  transform: translateX(-50%);
-  z-index: 18;
+  grid-row: 2;
   width: min(680px, calc(100vw - 32px));
+  margin-bottom: 14px;
   padding: 16px 22px;
   border: 1px solid var(--glass-brd);
   border-radius: var(--radius);
@@ -264,6 +274,8 @@ body {
   z-index: 20;
   padding: 10px clamp(12px, 3vw, 28px) 16px;
   background: linear-gradient(to top, rgba(7, 13, 28, 0.78), rgba(7, 13, 28, 0));
+  max-height: 30vh;
+  overflow-y: auto;
 }
 
 .hud-stats {
@@ -299,6 +311,8 @@ body {
   right: clamp(12px, 3vw, 28px);
   z-index: 30;
   width: min(340px, calc(100vw - 32px));
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
   padding: 20px;
   border: 1px solid var(--glass-brd);
   border-radius: var(--radius);
@@ -567,7 +581,11 @@ input[type="range"]:focus-visible {
 
 @media (max-width: 420px) {
   .message-card {
-    padding: 14px 16px;
+    padding: 12px 14px;
+  }
+
+  .message-text {
+    font-size: 0.84rem;
   }
 
   .settings-panel {
@@ -578,14 +596,51 @@ input[type="range"]:focus-visible {
   }
 }
 
-/* Yatay ekranlarda nefes alanını daralt */
+/* Yatay ve kısa ekranlar: üst bar/HUD için daha az yer ayır,
+   nefes alanını daralt. Dokunma alanları 48 px'in altına indirilmez. */
 @media (max-height: 560px) {
+  :root {
+    --header-h: 62px;
+    --hud-h: 60px;
+  }
+
+  .top-bar {
+    padding: 7px clamp(12px, 3vw, 28px);
+  }
+
   .breath-zone {
-    transform: translateY(0);
-    gap: 10px;
+    gap: 6px;
+  }
+
+  .breath-ring {
+    /* Çok kısa yatay ekranlarda halka küçülmeli, yoksa sahne taşar */
+    width: clamp(64px, 20vh, 124px);
+  }
+
+  .breath-text {
+    font-size: 0.76rem;
+    letter-spacing: 0.08em;
+  }
+
+  .breath-counter {
+    font-size: 0.66rem;
+  }
+
+  .hud {
+    padding: 6px clamp(12px, 3vw, 28px) 8px;
   }
 
   .message-card {
-    bottom: 74px;
+    margin-bottom: 8px;
+    padding: 10px 16px;
+  }
+
+  .message-text {
+    font-size: 0.76rem;
+  }
+
+  .settings-panel {
+    top: 58px;
+    max-height: calc(100vh - 66px);
   }
 }

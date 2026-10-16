@@ -277,6 +277,43 @@
     else CalmBreathing.setMode('resonance');
   }
 
+  /* ---------- Ayrılmış bölgeler ---------- */
+
+  // Sabit üst bar ve HUD, dar ekranlarda satır atlayıp büyüyebilir.
+  // Sahnenin bu alanlarla çakışmaması için gerçek yükseklikleri ölçüp
+  // CSS değişkenlerine yazarız; tahmine dayalı sabit değer kullanmayız.
+  function syncReservedZones() {
+    const root = document.documentElement;
+    const topBar = document.querySelector('.top-bar');
+    const hud = document.querySelector('.hud');
+    if (topBar) {
+      root.style.setProperty('--header-h', Math.ceil(topBar.getBoundingClientRect().height) + 'px');
+    }
+    if (hud) {
+      root.style.setProperty('--hud-h', Math.ceil(hud.getBoundingClientRect().height) + 'px');
+    }
+  }
+
+  // Buton etiketleri gizlenince veya yazı tipi yüklenince yükseklikler değişir.
+  let zoneObserver = null;
+  function watchReservedZones() {
+    syncReservedZones();
+
+    if (typeof ResizeObserver === 'function') {
+      zoneObserver = new ResizeObserver(syncReservedZones);
+      const topBar = document.querySelector('.top-bar');
+      const hud = document.querySelector('.hud');
+      if (topBar) zoneObserver.observe(topBar);
+      if (hud) zoneObserver.observe(hud);
+    }
+
+    window.addEventListener('resize', syncReservedZones);
+    window.addEventListener('orientationchange', syncReservedZones);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(syncReservedZones).catch(function () { /* yoksay */ });
+    }
+  }
+
   /* ---------- Olay bağlama ---------- */
 
   function bindEvents() {
@@ -495,6 +532,7 @@
     applySettingsToUI();
     updateHud();
     bindEvents();
+    watchReservedZones();
 
     // Perde görünürken herhangi bir etkileşim sesi hazırlar
     window.addEventListener('pointerdown', function once() {

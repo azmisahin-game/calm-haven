@@ -56,12 +56,13 @@
       <p class="breath-text" id="breath-text" aria-live="polite">Nefes al...</p>
       <p class="breath-counter" id="breath-counter" aria-live="off"></p>
     </section>
-  </main>
 
-  <!-- Şefkatli mesaj kartı -->
-  <aside class="message-card" id="message-card" role="status" aria-live="polite">
-    <p class="message-text" id="message-text">Burası sadece senin güvenli alanın.</p>
-  </aside>
+    <!-- Şefkatli mesaj kartı: sahne ızgarasının alt satırı,
+         böylece üst bar/HUD ile çakışması yapısal olarak imkânsız -->
+    <aside class="message-card" id="message-card" role="status" aria-live="polite">
+      <p class="message-text" id="message-text">Burası sadece senin güvenli alanın.</p>
+    </aside>
+  </main>
 
   <!-- Alt bilgi çubuğu -->
   <footer class="hud" aria-label="İlerleme">
