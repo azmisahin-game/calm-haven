@@ -454,7 +454,8 @@ kbd {
   transition: background 220ms var(--ease-calm), color 220ms var(--ease-calm);
 }
 
-.seg-btn[aria-checked="true"] {
+.seg-btn[aria-pressed="true"],
+.theme-btn[aria-pressed="true"] {
   background: rgba(16, 185, 129, 0.22);
   color: #fff;
 }

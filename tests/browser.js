@@ -420,6 +420,147 @@ async function newPage(browser, viewport) {
   check('20 görünümde düzen sorunu yok', layoutProblems.length === 0,
     layoutProblems.length ? layoutProblems.join(' | ') : SIZES.length + ' görünüm temiz');
 
+  /* ---------- Erişilebilirlik: klavye, odak, kontrast ---------- */
+  section('9. Erişilebilirlik (klavye, odak, ARIA, kontrast)');
+
+  {
+    const page = await newPage(browser);
+    await page.goto(URL, { waitUntil: 'networkidle0' });
+    await page.click('#btn-enter');
+    await new Promise((r) => setTimeout(r, 1200));
+
+    // (a) Nefes faz metni canlı bölge OLMAMALI (ekran okuyucu çığı önlenir)
+    const liveAudit = await page.evaluate(() => ({
+      breathTextLive: document.getElementById('breath-text').getAttribute('aria-live'),
+      breathCounterLive: document.getElementById('breath-counter').getAttribute('aria-live'),
+      statusLive: document.getElementById('breath-status').getAttribute('aria-live'),
+      statusRole: document.getElementById('breath-status').getAttribute('role')
+    }));
+    check('Nefes faz metni canlı bölge değil', liveAudit.breathTextLive === null);
+    check('Nefes sayacı canlı bölge değil', liveAudit.breathCounterLive === null);
+    check('Ayrı durum bölgesi var', liveAudit.statusLive === 'polite' && liveAudit.statusRole === 'status');
+
+    // (b) Paneller dialog semantiği taşımalı
+    const dialogs = await page.evaluate(() => {
+      const ids = ['settings-panel', 'garden-panel', 'journal-panel'];
+      return ids.map((id) => {
+        const el = document.getElementById(id);
+        return { id, role: el.getAttribute('role'), labelled: !!el.getAttribute('aria-labelledby') };
+      });
+    });
+    const dialogOk = dialogs.every((d) => d.role === 'dialog' && d.labelled);
+    check('Paneller dialog semantiği taşıyor', dialogOk,
+      dialogs.map((d) => d.id + ':' + d.role).join(', '));
+
+    // (c) Segmented kontrol doğru ARIA kullanmalı
+    const seg = await page.evaluate(() => {
+      const btns = document.querySelectorAll('.seg-btn, .theme-btn');
+      return Array.from(btns).map((b) => b.getAttribute('aria-pressed') !== null);
+    });
+    check('Segment kontroller aria-pressed kullanıyor', seg.every(Boolean), seg.length + ' düğme');
+
+    // (d) Bahçe paneli: odak içeri girer, Escape kapatır, odak tetikleyene döner.
+    // Bahçe düğmesi ayarlar panelinin içindedir; gerçek akışta önce ayarlar açılır.
+    const focusFlow = await page.evaluate(async () => {
+      document.getElementById('btn-settings').click();
+      await new Promise((r) => setTimeout(r, 350));
+      const trigger = document.getElementById('btn-garden');
+      trigger.focus();
+      const focusedBeforeOpen = document.activeElement === trigger;
+      trigger.click();
+      await new Promise((r) => setTimeout(r, 400));
+      return {
+        focusedBeforeOpen,
+        insideAfterOpen: document.getElementById('garden-panel').contains(document.activeElement)
+      };
+    });
+    check('Bahçe düğmesi odaklanabilir', focusFlow.focusedBeforeOpen === true);
+    check('Panel açılınca odak içeri giriyor', focusFlow.insideAfterOpen === true);
+
+    await page.keyboard.press('Escape');
+    await new Promise((r) => setTimeout(r, 450));
+    const afterEsc = await page.evaluate(() => ({
+      panelHidden: document.getElementById('garden-panel').hidden,
+      focusOnTrigger: document.activeElement === document.getElementById('btn-garden')
+    }));
+    check('Escape paneli kapatıyor', afterEsc.panelHidden === true);
+    check('Odak tetikleyen düğmeye dönüyor', afterEsc.focusOnTrigger === true);
+
+    // Escape ikinci kez: ayarlar paneli de kapanmalı ve odak ayarlar düğmesine dönmeli
+    await page.keyboard.press('Escape');
+    await new Promise((r) => setTimeout(r, 450));
+    const afterEsc2 = await page.evaluate(() => ({
+      settingsHidden: document.getElementById('settings-panel').hidden,
+      focusOnSettings: document.activeElement === document.getElementById('btn-settings')
+    }));
+    check('İkinci Escape ayarları kapatıyor', afterEsc2.settingsHidden === true);
+    check('Odak ayarlar düğmesine dönüyor', afterEsc2.focusOnSettings === true);
+
+    // (e) Yazarken kısayollar tetiklenmemeli (anı defterine "c" ve "p")
+    const typingGuard = await page.evaluate(async () => {
+      document.getElementById('btn-journal').click();
+      await new Promise((r) => setTimeout(r, 400));
+      const input = document.getElementById('journal-input');
+      input.focus();
+      const cruiseBefore = CalmForest.isCruise();
+      const breathBefore = CalmBreathing.getMode();
+      return { cruiseBefore, breathBefore };
+    });
+
+    await page.keyboard.type('cep telefonu');
+    await new Promise((r) => setTimeout(r, 400));
+    const typingResult = await page.evaluate(() => ({
+      value: document.getElementById('journal-input').value,
+      cruise: CalmForest.isCruise(),
+      breathMode: CalmBreathing.getMode()
+    }));
+    check('Yazarken metin doğru girildi', typingResult.value === 'cep telefonu', typingResult.value);
+    check('Yazarken otomatik gezinti tetiklenmedi', typingResult.cruise === typingGuard.cruiseBefore);
+    check('Yazarken nefes rehberi tetiklenmedi', typingResult.breathMode === typingGuard.breathBefore);
+
+    // (f) Kontrast ölçümü: gerçek CSS renkleriyle
+    const contrast = await page.evaluate(() => {
+      function parse(c) {
+        const m = c.match(/rgba?\(([^)]+)\)/);
+        if (!m) return null;
+        const p = m[1].split(',').map((x) => parseFloat(x.trim()));
+        return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+      }
+      function lum(c) {
+        const f = (v) => {
+          v /= 255;
+          return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+      }
+      // Arka planı sahne olmadan tahmin et: gövde arka plan rengini al
+      const bodyBg = parse(getComputedStyle(document.body).backgroundColor) || { r: 15, g: 23, b: 42, a: 1 };
+      const samples = [
+        ['message-text', document.querySelector('.message-text')],
+        ['hud-item dt', document.querySelector('.hud-item dt')],
+        ['breath-text', document.getElementById('breath-text')],
+        ['settings-label', document.querySelector('.settings-label')]
+      ];
+      return samples.map(([name, el]) => {
+        if (!el) return { name, ratio: null };
+        const fg = parse(getComputedStyle(el).color);
+        if (!fg) return { name, ratio: null };
+        const l1 = lum(fg);
+        const l2 = lum(bodyBg);
+        const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+        return { name, ratio: +ratio.toFixed(2), size: parseFloat(getComputedStyle(el).fontSize) };
+      });
+    });
+    const failing = contrast.filter((c) => c.ratio !== null && c.ratio < 4.5);
+    check('Metin kontrastı >= 4.5:1', failing.length === 0,
+      failing.length ? failing.map((c) => c.name + '=' + c.ratio).join(', ')
+                     : contrast.map((c) => c.name + '=' + c.ratio).join(', '));
+
+    check('Erişilebilirlik bölümünde konsol hatası yok', page.errors.length === 0,
+      page.errors.join(' | ') || 'temiz');
+    await page.close();
+  }
+
   /* ---------- Ozet ---------- */
   console.log('\n' + '-'.repeat(58));
   console.log('Gecen: ' + passed + '   Basarisiz: ' + failed);

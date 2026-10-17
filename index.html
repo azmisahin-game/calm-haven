@@ -55,8 +55,11 @@
     <!-- Nefes halkası -->
     <section class="breath-zone" aria-label="Nefes rehberi">
       <div class="breath-ring" id="breath-ring" role="img" aria-label="Nefes ritmini gösteren halka"></div>
-      <p class="breath-text" id="breath-text" aria-live="polite">Nefes al...</p>
-      <p class="breath-counter" id="breath-counter" aria-live="off"></p>
+      <!-- Faz metni her 4-6 saniyede değişir; canlı bölge YAPILMAZ,
+           aksi halde ekran okuyucu sürekli konuşur. Görsel metin okunabilir
+           kalır, durum değişiklikleri ayrı ve seyrek bir bölgeden duyurulur. -->
+      <p class="breath-text" id="breath-text">Nefes al...</p>
+      <p class="breath-counter" id="breath-counter"></p>
       <p class="breath-note" id="breath-note">
         Ritmi takip etmek zorunda değilsin. Doğal nefesinle de kalabilirsin.
       </p>
@@ -64,6 +67,8 @@
               aria-label="Nefes rehberini durdur ve doğal nefesine dön">
         Rehberi Durdur
       </button>
+      <!-- Yalnızca başlatma/durdurma gibi seyrek durum değişiklikleri duyurulur -->
+      <p class="visually-hidden" id="breath-status" role="status" aria-live="polite"></p>
     </section>
 
     <!-- Şefkatli mesaj kartı: sahne ızgarasının alt satırı,
@@ -92,22 +97,23 @@
   </footer>
 
   <!-- Ayarlar paneli -->
-  <section class="settings-panel" id="settings-panel" hidden aria-label="Ayarlar">
-    <h2 class="settings-title">Ayarlar</h2>
+  <section class="settings-panel" id="settings-panel" hidden role="dialog"
+           aria-modal="false" aria-labelledby="settings-title">
+    <h2 class="settings-title" id="settings-title">Ayarlar</h2>
 
     <div class="settings-row">
       <span class="settings-label" id="label-breath-mode">Nefes Ritmi</span>
-      <div class="segmented" role="radiogroup" aria-labelledby="label-breath-mode">
-        <button type="button" role="radio" aria-checked="true" data-mode="resonance" class="seg-btn">Rezonans 4 / 6</button>
-        <button type="button" role="radio" aria-checked="false" data-mode="sigh" class="seg-btn">İçe Çekiş</button>
+      <div class="segmented" role="group" aria-labelledby="label-breath-mode">
+        <button type="button" aria-pressed="true" data-mode="resonance" class="seg-btn">Rezonans 4 / 6</button>
+        <button type="button" aria-pressed="false" data-mode="sigh" class="seg-btn">İçe Çekiş</button>
       </div>
     </div>
 
     <div class="settings-row">
       <span class="settings-label" id="label-theme">Ortam</span>
-      <div class="segmented" role="radiogroup" aria-labelledby="label-theme">
-        <button type="button" role="radio" aria-checked="true" data-theme="forest" class="theme-btn">🌲 Orman</button>
-        <button type="button" role="radio" aria-checked="false" data-theme="island" class="theme-btn">🏝️ Issız Ada</button>
+      <div class="segmented" role="group" aria-labelledby="label-theme">
+        <button type="button" aria-pressed="true" data-theme="forest" class="theme-btn">🌲 Orman</button>
+        <button type="button" aria-pressed="false" data-theme="island" class="theme-btn">🏝️ Issız Ada</button>
       </div>
     </div>
 
@@ -167,9 +173,10 @@
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <!-- Bahçe paneli -->
-  <section class="panel" id="garden-panel" hidden aria-label="Bahçe">
+  <section class="panel" id="garden-panel" hidden role="dialog"
+           aria-modal="true" aria-labelledby="garden-title">
     <header class="panel-head">
-      <h2 class="panel-title">Bahçen</h2>
+      <h2 class="panel-title" id="garden-title">Bahçen</h2>
       <button type="button" class="panel-close" id="btn-garden-close" aria-label="Bahçeyi kapat">✕</button>
     </header>
     <p class="panel-note">
@@ -183,9 +190,10 @@
   </section>
 
   <!-- Anı defteri paneli -->
-  <section class="panel" id="journal-panel" hidden aria-label="Anı defteri">
+  <section class="panel" id="journal-panel" hidden role="dialog"
+           aria-modal="true" aria-labelledby="journal-title">
     <header class="panel-head">
-      <h2 class="panel-title">Anı Defteri</h2>
+      <h2 class="panel-title" id="journal-title">Anı Defteri</h2>
       <button type="button" class="panel-close" id="btn-journal-close" aria-label="Anı defterini kapat">✕</button>
     </header>
     <p class="panel-note">

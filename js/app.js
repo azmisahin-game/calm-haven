@@ -48,6 +48,8 @@
   let settingsOpen = false;
   let reducedMotion = false;
   let entering = true;
+  // Odak geri dönüşü için saklanan öğeler
+  let lastFocusedBeforeSettings = null;
 
   // Ses olaylarının seyrekliği: ayak sesi çok sık olmasın
   let lastStepSound = 0;
@@ -277,8 +279,15 @@
     CalmBreathing.startSigh();
     // Durdurma düğmesi görünür olsun: kullanıcı her an çıkabilmeli
     if (els.btnBreathStop) els.btnBreathStop.hidden = false;
+    announceBreath('İçe çekiş ritmi başladı. Üç tur sürer. İstediğin an durdurabilirsin.');
     showToast('İçe çekiş başladı. Rahatsızlık duyarsan durdur ve doğal nefesine dön.');
     if (els.statSteps) updateHud();
+  }
+
+  // Ekran okuyucuya yalnızca seyrek, anlamlı durum değişikliklerini duyur.
+  // Nefes fazı metni her 4-6 saniyede değiştiği için canlı bölge DEĞİLDİR.
+  function announceBreath(text) {
+    if (els.breathStatus) els.breathStatus.textContent = text;
   }
 
   // İçe çekiş protokolü tamamlandığında bağlamsal mesaj tetiklenir
@@ -288,10 +297,30 @@
     }
   }
 
+  // Odak geri dönüşü için güvenilir hedef seç.
+  // Fare ile açıldığında document.activeElement `body` olur; `body`'ye
+  // odak döndürmek klavye kullanıcısını sayfanın başına atar. Bu yüzden
+  // gövde/dışı bir öğe saklanmışsa tetikleyen düğmeye düşeriz.
+  function focusReturnTarget(stored, fallback) {
+    if (stored && stored !== document.body && typeof stored.focus === 'function') return stored;
+    return fallback || null;
+  }
+
   function toggleSettings(force) {
+    const wasOpen = settingsOpen;
     settingsOpen = typeof force === 'boolean' ? force : !settingsOpen;
     if (els.settingsPanel) els.settingsPanel.hidden = !settingsOpen;
     if (els.btnSettings) els.btnSettings.setAttribute('aria-expanded', String(settingsOpen));
+
+    // Odak yönetimi: açılınca panele, kapanınca tetikleyen düğmeye dön
+    if (settingsOpen && !wasOpen) {
+      lastFocusedBeforeSettings = document.activeElement;
+      focusFirstIn(els.settingsPanel);
+    } else if (!settingsOpen && wasOpen) {
+      const back = focusReturnTarget(lastFocusedBeforeSettings, els.btnSettings);
+      if (back) back.focus();
+      lastFocusedBeforeSettings = null;
+    }
   }
 
   function setBreathMode(mode) {
@@ -299,7 +328,7 @@
     CalmBreathing.setMode(mode);
     if (els.segBtns) {
       els.segBtns.forEach(function (btn) {
-        btn.setAttribute('aria-checked', String(btn.dataset.mode === mode));
+        btn.setAttribute('aria-pressed', String(btn.dataset.mode === mode));
       });
     }
     saveState();
@@ -313,7 +342,7 @@
     document.documentElement.setAttribute('data-theme', theme);
     if (els.themeBtns) {
       els.themeBtns.forEach(function (btn) {
-        btn.setAttribute('aria-checked', String(btn.dataset.theme === theme));
+        btn.setAttribute('aria-pressed', String(btn.dataset.theme === theme));
       });
     }
     saveState();
@@ -340,12 +369,12 @@
 
     if (els.segBtns) {
       els.segBtns.forEach(function (btn) {
-        btn.setAttribute('aria-checked', String(btn.dataset.mode === s.breathMode));
+        btn.setAttribute('aria-pressed', String(btn.dataset.mode === s.breathMode));
       });
     }
     if (els.themeBtns) {
       els.themeBtns.forEach(function (btn) {
-        btn.setAttribute('aria-checked', String(btn.dataset.theme === s.theme));
+        btn.setAttribute('aria-pressed', String(btn.dataset.theme === s.theme));
       });
     }
 
@@ -651,10 +680,29 @@
     els.sanctuarySummary.textContent = parts.join(' · ') + '.';
   }
 
+  // Odak yönetimi: panel açılınca ilk kontrole, kapanınca tetikleyen
+  // düğmeye dön. Klavye kullanıcısı kaybolmasın.
+  let lastFocusedBeforePanel = null;
+
+  function focusFirstIn(panel) {
+    if (!panel) return;
+    const target = panel.querySelector(
+      'button:not([hidden]), input:not([hidden]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (target) target.focus();
+    else panel.focus();
+  }
+
   function togglePanel(which, force) {
     const el = which === 'garden' ? els.gardenPanel : els.journalPanel;
     if (!el) return;
     const open = typeof force === 'boolean' ? force : el.hidden;
+
+    if (open) {
+      // Odağı geri döndürmek için tetikleyeni sakla
+      lastFocusedBeforePanel = document.activeElement;
+    }
+
     el.hidden = !open;
 
     // Aynı anda yalnızca bir panel açık kalsın
@@ -663,7 +711,19 @@
       if (other) other.hidden = true;
       if (which === 'garden') { renderGarden(); renderSeeds(); }
       else renderJournal();
+      focusFirstIn(el);
+    } else {
+      const back = focusReturnTarget(lastFocusedBeforePanel, which === 'garden' ? els.btnGarden : els.btnJournal);
+      if (back) back.focus();
+      lastFocusedBeforePanel = null;
     }
+  }
+
+  // Açık olan paneli kapatır (Escape). Kapatılan panelin adını döndürür.
+  function closeTopPanel() {
+    if (els.gardenPanel && !els.gardenPanel.hidden) { togglePanel('garden', false); return 'garden'; }
+    if (els.journalPanel && !els.journalPanel.hidden) { togglePanel('journal', false); return 'journal'; }
+    return null;
   }
 
   // Ada temasında kıyıda kabuk bulunur; toplamak kayıp değildir.
@@ -879,9 +939,30 @@
     setHolding(false);
   }
 
+  // Metin alanına yazarken kısayollar çalışmamalı: aksi halde anı defterine
+  // "c" veya "p" yazmak otomatik gezintiyi/nefes rehberini tetikler.
+  function isTypingTarget(el) {
+    if (!el) return false;
+    const tag = (el.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+    if (el.isContentEditable) return true;
+    return false;
+  }
+
   function onKeyDown(e) {
+    const typing = isTypingTarget(e.target);
+
     if (e.repeat) {
-      if (e.code === 'Space') e.preventDefault();
+      if (e.code === 'Space' && !typing) e.preventDefault();
+      return;
+    }
+
+    // Yazarken yalnızca Escape işlenir (panel kapatma)
+    if (typing) {
+      if (e.key === 'Escape' || e.code === 'Escape') {
+        if (closeTopPanel()) return;
+        if (settingsOpen) { toggleSettings(false); }
+      }
       return;
     }
 
@@ -918,7 +999,9 @@
     } else if (key === 'm' || e.code === 'KeyM') {
       toggleAudio();
     } else if (e.key === 'Escape' || e.code === 'Escape') {
-      toggleSettings();
+      // Escape en üstteki açık paneli kapatır; sırası önemli
+      if (closeTopPanel()) return;
+      if (settingsOpen) { toggleSettings(false); return; }
     } else if (key === 'c' || e.code === 'KeyC') {
       toggleCruise();
     }
@@ -968,6 +1051,7 @@
     setBreathText('Kendi nefesinle kal...');
     if (els.breathCounter) els.breathCounter.textContent = '';
     if (els.btnBreathStop) els.btnBreathStop.hidden = true;
+    announceBreath('Nefes rehberi durdu. Doğal nefesinle kalabilirsin.');
     showToast('Nefes rehberi durdu. Doğal nefesinle kalabilirsin.');
   }
 
@@ -995,6 +1079,7 @@
     els.btnEnter = document.getElementById('btn-enter');
     els.btnEnterSilent = document.getElementById('btn-enter-silent');
     els.btnBreathStop = document.getElementById('btn-breath-stop');
+    els.breathStatus = document.getElementById('breath-status');
     els.breathRing = document.getElementById('breath-ring');
     els.breathText = document.getElementById('breath-text');
     els.breathCounter = document.getElementById('breath-counter');
