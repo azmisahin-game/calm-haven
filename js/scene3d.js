@@ -18,7 +18,13 @@ const CalmScene3D = (function () {
   const CHUNK = 14;            // yanal yerleşim genişliği (birim)
   const RECYCLE_BEHIND = 25;   // kameranın bu kadar gerisindeki nesne geri dönüşür
   const SPREAD = 70;           // ileriye doğru yerleşim derinliği
-  const NEAR_MIN = 5;          // nesnelerin en yakın doğuş mesafesi
+  const NEAR_MIN = 5;          // kayalar için en yakın doğuş mesafesi
+  // Ağaçlar için daha uzak bir alt sınır: 4-6 birim yüksekliğindeki bir ağaç
+  // kameranın 5 birim önünde doğarsa ekranın üst yarısını tamamen kapatır ve
+  // gökyüzü hiç görünmez. Ölçüm: ada temasında gün batımı gökyüzünün yalnızca
+  // %3'ü görünüyordu. Bu yüzden ağaçlar daha geride başlar ve kompozisyonu
+  // çerçeveler, kapatmaz.
+  const TREE_NEAR_MIN = 17;
   const IDLE_DELAY = 10;
   const IDLE_SPEED_FACTOR = 0.25;
   const IDLE_STEP_FACTOR = 0.06;
@@ -258,9 +264,11 @@ const CalmScene3D = (function () {
       for (let i = 0; i < PALM_MAX; i++) {
         instanceData.push({
           kind: 'palm',
+          // Palmiyeler sahneyi çerçeveler: daha geride başlar ve hafif
+          // küçülür, böylece ortada gün batımı gökyüzü açık kalır.
           x: rand(-CHUNK, CHUNK),
-          z: camZ - rand(NEAR_MIN, SPREAD),
-          scale: rand(0.8, 1.5),
+          z: camZ - rand(TREE_NEAR_MIN, SPREAD),
+          scale: rand(0.75, 1.25),
           phase: rand(0, Math.PI * 2),
           tilt: 0
         });
@@ -270,7 +278,7 @@ const CalmScene3D = (function () {
         instanceData.push({
           kind: 'pine',
           x: rand(-CHUNK, CHUNK),
-          z: camZ - rand(NEAR_MIN, SPREAD),
+          z: camZ - rand(TREE_NEAR_MIN, SPREAD),
           scale: rand(0.8, 1.9),
           phase: rand(0, Math.PI * 2),
           tilt: 0
@@ -332,9 +340,9 @@ const CalmScene3D = (function () {
 
       // Döngüsel tampon: kameranın gerisinde kalan nesneyi ileri taşı
       if (d.z > camZ + RECYCLE_BEHIND) {
-        d.z = camZ - rand(20, SPREAD);
+        d.z = camZ - rand(TREE_NEAR_MIN, SPREAD);
         d.x = rand(-CHUNK, CHUNK);
-        d.scale = d.kind === 'rock' ? rand(0.6, 1.6) : rand(0.8, 1.9);
+        d.scale = d.kind === 'rock' ? rand(0.6, 1.6) : rand(0.75, 1.9);
       }
 
       // Rüzgar salınımı: z ekseni etrafında küçük bir eğilme

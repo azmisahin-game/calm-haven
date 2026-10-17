@@ -16,7 +16,64 @@
 
 'use strict';
 
+const zlib = require('zlib');
 const puppeteer = require('puppeteer-core');
+
+// Minimal PNG çözümleyici. WebGL tuvali preserveDrawingBuffer:false ile
+// oluşturulduğu için getImageData boş döner; sahne analizi ekran görüntüsü
+// üzerinden yapılır. Bağımlılık eklememek için yalnızca zlib kullanılır.
+function decodePng(buf) {
+  let pos = 8;
+  const idat = [];
+  let w, h, ct;
+  while (pos < buf.length) {
+    const len = buf.readUInt32BE(pos);
+    const type = buf.toString('ascii', pos + 4, pos + 8);
+    if (type === 'IHDR') {
+      w = buf.readUInt32BE(pos + 8);
+      h = buf.readUInt32BE(pos + 12);
+      ct = buf[pos + 17];
+    } else if (type === 'IDAT') {
+      idat.push(buf.subarray(pos + 8, pos + 8 + len));
+    } else if (type === 'IEND') {
+      break;
+    }
+    pos += 12 + len;
+  }
+  const raw = zlib.inflateSync(Buffer.concat(idat));
+  const ch = { 0: 1, 2: 3, 4: 2, 6: 4 }[ct];
+  const stride = w * ch;
+  const out = Buffer.alloc(h * stride);
+  let prev = Buffer.alloc(stride);
+  let i = 0;
+  for (let y = 0; y < h; y++) {
+    const filter = raw[i++];
+    const line = Buffer.from(raw.subarray(i, i + stride));
+    i += stride;
+    if (filter === 1) {
+      for (let x = ch; x < stride; x++) line[x] = (line[x] + line[x - ch]) & 255;
+    } else if (filter === 2) {
+      for (let x = 0; x < stride; x++) line[x] = (line[x] + prev[x]) & 255;
+    } else if (filter === 3) {
+      for (let x = 0; x < stride; x++) {
+        const a = x >= ch ? line[x - ch] : 0;
+        line[x] = (line[x] + ((a + prev[x]) >> 1)) & 255;
+      }
+    } else if (filter === 4) {
+      for (let x = 0; x < stride; x++) {
+        const a = x >= ch ? line[x - ch] : 0;
+        const b = prev[x];
+        const c = x >= ch ? prev[x - ch] : 0;
+        const pp = a + b - c;
+        const pa = Math.abs(pp - a), pb = Math.abs(pp - b), pc = Math.abs(pp - c);
+        line[x] = (line[x] + (pa <= pb && pa <= pc ? a : pb <= pc ? b : c)) & 255;
+      }
+    }
+    line.copy(out, y * stride);
+    prev = line;
+  }
+  return { w, h, ch, px: out };
+}
 
 const URL = process.env.CALM_URL || 'http://localhost:12000/';
 const CHROME = process.env.CHROME_PATH || '/usr/bin/chromium';
@@ -632,6 +689,70 @@ async function newPage(browser, viewport) {
     check('Bozuk verinin ' + CORRUPT_CASES.length + ' biçiminde uygulama çalışıyor',
       corruptProblems.length === 0,
       corruptProblems.length ? corruptProblems.join(' | ') : CORRUPT_CASES.length + '/' + CORRUPT_CASES.length);
+  }
+
+  /* ---------- Sahne kompozisyonu: gökyüzü görünürlüğü ---------- */
+  section('11. Sahne kompozisyonu (gökyüzü kapanmıyor)');
+
+  {
+    // Gerçek hata: ağaçlar kameranın 5 birim önünde doğuyordu ve ada
+    // temasında gün batımı gökyüzünün %97'sini kapatıyordu. Ağaçlar artık
+    // daha geride başlar. Bu test üst bölgede gökyüzü renginin görünmesini
+    // ve ağaç oranının makul kalmasını denetler.
+    const page = await newPage(browser, { width: 1440, height: 900 });
+
+    // Ada temasını yeni belgede enjekte et (beforeunload ezmesin)
+    await page.evaluateOnNewDocument(() => {
+      localStorage.setItem('calm_haven_data_v1', JSON.stringify({
+        steps: 0, totalTime: 0, milestones: [], lastVisit: null,
+        settings: {
+          audioEnabled: false, audioLevel: 0.45, walkSpeed: 0.45,
+          breathMode: 'resonance', theme: 'island', breathWalk: false
+        }
+      }));
+    });
+    await page.goto(URL, { waitUntil: 'networkidle0' });
+    await page.waitForFunction('window.__scene3dReady === true', { timeout: 15000 }).catch(() => {});
+    await page.click('#btn-enter');
+    await new Promise((r) => setTimeout(r, 2500));
+
+    const analysis = await page.evaluate(() => ({
+      theme: document.documentElement.getAttribute('data-theme'),
+      using3D: !document.getElementById('scene-canvas').hidden
+    }));
+
+    // WebGL tuvali preserveDrawingBuffer:false ile oluşturulur; getImageData ve
+    // drawImage boş döner. Bu yüzden sahneyi gerçek ekran görüntüsü olarak alıp
+    // piksel analizini Node tarafında yaparız (aşağıda, decodePng ile).
+    const shotBuf = await page.screenshot({ encoding: 'base64' });
+
+    if (!analysis.using3D) {
+      check('Gökyüzü kompozisyonu (3B yok, atlandı)', true, '2B motor aktif');
+    } else {
+      check('Ada teması yüklendi', analysis.theme === 'island', analysis.theme);
+
+      const { w, h, ch, px } = decodePng(Buffer.from(shotBuf, 'base64'));
+      let green = 0, sky = 0, total = 0;
+      const limit = Math.floor(h * 0.30);
+      for (let y = 0; y < limit; y += 2) {
+        for (let x = 0; x < w; x += 2) {
+          const i = (y * w + x) * ch;
+          const r = px[i], gg = px[i + 1], b = px[i + 2];
+          total++;
+          if (gg > r + 8) green++;
+          else if ((r > 55 || b > 55) && gg < Math.max(r, b) + 8) sky++;
+        }
+      }
+      const skyPct = +(sky / total * 100).toFixed(1);
+      const treePct = +(green / total * 100).toFixed(1);
+
+      check('Üst bölgede gökyüzü görünüyor (>%25)', skyPct > 25, '%' + skyPct + ' gökyüzü');
+      check('Ağaçlar sahneyi kapatmıyor (<%30)', treePct < 30, '%' + treePct + ' ağaç');
+    }
+
+    check('Kompozisyon bölümünde konsol hatası yok', page.errors.length === 0,
+      page.errors.join(' | ') || 'temiz');
+    await page.close();
   }
 
   /* ---------- Ozet ---------- */

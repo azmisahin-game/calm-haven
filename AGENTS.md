@@ -32,10 +32,39 @@ Bu kurallar ürünün özüdür; katkılarda ihlal edilmemelidir.
 # Yerel önizleme (fetch için file:// yerine sunucu gerekir)
 python3 -m http.server 8000
 
-# Sözdizimi denetimi
-for f in js/*.js; do node --check "$f"; done
-python3 -m json.tool data/messages.json > /dev/null
+# Statik denetimler (bağımlılık gerekmez)
+node tests/static-checks.js
+
+# Tarayıcı regresyon testleri (sunucuyu kendisi başlatır)
+bash tests/run-browser.sh
+
+# İkisi birden
+npm run test:all
 ```
+
+Testler hakkında ayrıntı: [docs/TESTING.md](docs/TESTING.md)
+
+## Erişilebilirlik ve güvenlik kuralları
+
+Bu kurallar ihlal edilmemelidir:
+
+- **Yakınlaştırma engellenmez.** `viewport` içinde `maximum-scale` veya
+  `user-scalable=no` kullanılmaz. `gesturestart` üzerinde `preventDefault`
+  çağrılmaz; bu iOS'ta sayfa zoom'unu bloke eder.
+- **Sık değişen metin canlı bölge olmaz.** Nefes faz metni her 4-6 saniyede
+  değişir; `aria-live` verilirse ekran okuyucu sürekli konuşur. Seyrek durum
+  değişiklikleri için ayrı `role="status"` bölgesi kullanılır.
+- **Yanlış ARIA kullanılmaz.** Ok tuşu davranışını uygulamayan bir gruba
+  `role="radio"` verilmez; native `button` + `aria-pressed` kullanılır.
+- **Kısayollar metin alanlarında çalışmaz.** `isTypingTarget()` denetimi
+  atlanırsa anı defterine yazmak uygulamayı tetikler.
+- **Odak yönetimi zorunludur.** Panel açılınca odak içeri girer, kapanınca
+  tetikleyen düğmeye döner. `focusReturnTarget()` gövdeye odaklanmayı engeller.
+- **Kullanıcı metni `textContent` ile yazılır.** `innerHTML` kullanılmaz.
+- **Tıbbi iddia kurulmaz.** "Biofeedback", "tedavi", "kaygıyı giderir" gibi
+  ifadeler kullanılmaz; uygulama ölçüm yapmaz. Kaynak sınırları
+  [docs/SCIENCE-AND-SAFETY.md](docs/SCIENCE-AND-SAFETY.md) içinde yazılıdır.
+- **Analitik ve CDN eklenmez.** `tests/static-checks.js` bunu denetler.
 
 ## Mimari notları
 

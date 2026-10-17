@@ -3,32 +3,88 @@ name: GitHub Pages Canlı Yayını
 on:
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
+# Gerekli en düşük izinler. `verify` işi yalnızca okuma yapar; yazma izinleri
+# yalnızca `deploy` işindedir.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  # Statik denetimler ve tarayıcı regresyon testleri.
+  # Dağıtım bu iş başarılı olmadan ÇALIŞMAZ.
+  verify:
+    name: Denetimler ve testler
     runs-on: ubuntu-latest
     steps:
       - name: Kodu Çek
         uses: actions/checkout@v4
+
+      - name: Node.js Kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Statik Denetimler
+        run: node tests/static-checks.js
+
+      - name: Test Bağımlılıklarını Kur
+        run: npm install --no-audit --no-fund
+
+      - name: Tarayıcı Testleri
+        run: bash tests/run-browser.sh
+
+      - name: Başarısızlıkta Sunucu Günlüğünü Yükle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-ciktilari
+          path: /tmp/calm-haven-test-server.log
+          if-no-files-found: ignore
+
+  deploy:
+    name: GitHub Pages'e Dağıt
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Kodu Çek
+        uses: actions/checkout@v4
+
       - name: GitHub Pages Yapılandır
         uses: actions/configure-pages@v5
+
+      # Üretim paketi: yalnızca statik dosyalar. node_modules, tests ve
+      # geliştirme yapılandırması yayınlanmaz; canlı uygulama npm'e bağlı
+      # değildir ve CDN kullanmaz.
+      # Not: upload-pages-artifact gizli dosyaları (`.nojekyll`) atlar, bu
+      # yüzden paket önce geçici bir dizine kopyalanır.
+      - name: Üretim Paketini Hazırla
+        run: |
+          mkdir -p dist
+          cp -r index.html css js data vendor README.md LICENSE dist/
+          touch dist/.nojekyll
+          echo "Paket içeriği:"
+          find dist -type f | sort
+
       - name: Statik Dosyaları Paketle
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: dist
+
       - name: GitHub Pages'e Dağıt
         id: deployment
         uses: actions/deploy-pages@v4

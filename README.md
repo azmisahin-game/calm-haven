@@ -85,7 +85,9 @@ gölgelendiricilerle (shader) nefes fazına bağlıdır.
   Boş ekran veya hata mesajı oluşmaz.
 
 > Three.js `vendor/three.module.min.js` içinde **yerelden** sunulur. CDN
-> kullanılmaz; böylece çevrimdışı da çalışır ve derleme adımı gerekmez.
+> kullanılmaz ve derleme adımı gerekmez. Bu, **harici bağımlılık olmadığı**
+> anlamına gelir; "her zaman çevrimdışı açılır" garantisi **değildir** — depoda
+> service worker yoktur. Ayrıntı: [docs/PRIVACY.md](docs/PRIVACY.md)
 
 ---
 
@@ -168,6 +170,19 @@ Ayarlar panelinden ayrıca **Nefesle Yürü**, **ortam teması** (Orman / Issız
 **bahçe**, **anı defteri**, ses düzeyi ve yürüyüş hızı seçilebilir.
 
 Tüm düğmeler en az 48×48 piksel dokunma alanına sahiptir.
+
+---
+
+## Dokümantasyon
+
+| Belge | İçerik |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Modüller, önyükleme sırası, motor yükseltme/yedek akışı, veri akışı |
+| [docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md) | Renk token'ları, tipografi, hareket dili, erişilebilirlik standartları |
+| [docs/SCIENCE-AND-SAFETY.md](docs/SCIENCE-AND-SAFETY.md) | Nefes protokolleri, kaynaklar ve sınırları, güvenlik |
+| [docs/PRIVACY.md](docs/PRIVACY.md) | Hangi veri cihazda tutulur, neyin garanti edilmediği |
+| [docs/TESTING.md](docs/TESTING.md) | Testleri çalıştırma, kapsam, elle test senaryoları |
+| [CHANGELOG.md](CHANGELOG.md) | Sürüm değişiklikleri |
 
 ---
 
