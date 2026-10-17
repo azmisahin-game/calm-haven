@@ -440,9 +440,14 @@ kbd {
   background: rgba(7, 13, 28, 0.6);
 }
 
-.seg-btn {
+/* Segment ve tema düğmeleri aynı görsel dili paylaşır.
+   Dokunma alanı kuralı: en az 48 px yüksekliğinde olmalıdır.
+   `.theme-btn` önceden hiç biçimlendirilmemişti ve yalnızca ~21 px
+   yüksekliğindeydi; bu erişilebilirlik kuralının ihlaliydi. */
+.seg-btn,
+.theme-btn {
   flex: 1;
-  min-height: 38px;
+  min-height: var(--touch);
   padding: 0 12px;
   border: 0;
   border-radius: 999px;
@@ -460,7 +465,8 @@ kbd {
   color: #fff;
 }
 
-.seg-btn:focus-visible {
+.seg-btn:focus-visible,
+.theme-btn:focus-visible {
   outline: 2px solid var(--island-green);
   outline-offset: 2px;
 }
@@ -544,25 +550,51 @@ input[type="range"]:focus-visible {
 
 .panel {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 0;
+  right: 0;
+  bottom: 0;
   z-index: 40;
-  width: min(560px, calc(100vw - 32px));
-  max-height: min(78vh, 640px);
+  width: min(420px, 92vw);
+  max-height: none;
   overflow-y: auto;
   padding: 22px;
-  border: 1px solid var(--glass-brd);
-  border-radius: var(--radius);
-  background: rgba(9, 20, 32, 0.92);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
-  box-shadow: var(--glass-shadow);
-  animation: panel-center-in 320ms var(--ease-calm) both;
+  border-left: 1px solid var(--glass-brd);
+  border-radius: 0;
+  /* Yarı saydam: panel açıkken dünya görünür kalır, daldırma bozulmaz. */
+  background: rgba(9, 20, 32, 0.72);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: -18px 0 48px rgba(0, 0, 0, 0.45);
+}
+
+/* Giriş animasyonu yalnızca görünür olduğunda uygulanır.
+   `animation` + `hidden` birlikte kullanılırsa, `both` dolgu kipi
+   animasyonun başlangıç karesini (translateX(24px)) kalıcı uygular ve
+   çekmece görünüm alanının dışına 24 px taşar. */
+.panel:not([hidden]) {
+  animation: panel-slide-in 300ms var(--ease-calm) both;
+}
+
+/* Kısa ekranlarda çekmece tam yüksekliği kaplar; kaydırma zaten açık. */
+@media (max-height: 560px) {
+  .panel {
+    width: min(380px, 96vw);
+    padding: 16px;
+  }
 }
 
 .panel[hidden] {
   display: none;
+}
+
+/* Çekmece açıkken sahne içeriği sağa taşmasın: nefes alanı ve mesaj kartı
+   çekmecenin altında kalmaz. Yalnızca çekmece açıkken uygulanır. */
+body.panel-open .stage {
+  padding-right: min(420px, 92vw);
+}
+
+body.panel-open .message-card {
+  margin-left: 0;
 }
 
 .panel-head {

@@ -53,6 +53,11 @@ const CalmForest = (function () {
   const IDLE_DELAY = 10;
   const IDLE_SPEED_FACTOR = 0.25;
   const IDLE_STEP_FACTOR = 0.06;
+  // Boşta kayma (idle drift) varsayılan olarak KAPALIDIR.
+  // Önceden 10 sn etkileşimsizlikten sonra kamera habersizce kaymaya
+  // başlıyordu; kullanıcı bunu "kendiliğinden başka bir yere gitme" olarak
+  // algılıyordu. İsteyen ayarlardan açar; sahne kapalıyken de canlıdır.
+  let idleDrift = false;
 
   let canvas = null;
   let ctx = null;
@@ -835,7 +840,48 @@ const CalmForest = (function () {
       if (wx <= 0) continue;
       const depth = i % 3 === 0 ? 1 : 0.86;
       drawCabin(wx, depth * clampScale());
+      drawGarden(wx, depth * clampScale());
     }
+  }
+
+  // Bahçe: dikilen çiçekler kulübenin yanında, dünyada görünür.
+  // 2B motorda da çiçekler sahneye yerleştirilir; büyüme ölçeğe yansır
+  // ve asla geri gitmez.
+  function drawGarden(cabinX, scale) {
+    if (typeof CalmSanctuary === 'undefined' || !CalmSanctuary) return;
+    const flowers = CalmSanctuary.getGarden();
+    if (!flowers.length) return;
+
+    const s = scale;
+    const x = cabinX - camera;
+    const baseY = pathY + 8 * s;
+    const originX = x - (118 / 2 + 40) * s;   // kulübenin solu
+    const originY = baseY - 6 * s;
+
+    const SPACING = 7 * s;
+    for (let i = 0; i < flowers.length; i++) {
+      const f = flowers[i];
+      const gx = originX + (f.x - 2.5) * SPACING;
+      const gy = originY - (f.y - 1.5) * SPACING * 0.55;
+      const growth = Math.max(0, Math.min(1, f.growth));
+      const size = (1.4 + growth * 2.4) * s;
+
+      // Sap
+      ctx.strokeStyle = 'rgba(45, 92, 68, 0.85)';
+      ctx.lineWidth = Math.max(1, 1.2 * s);
+      ctx.beginPath();
+      ctx.moveTo(gx, gy);
+      ctx.lineTo(gx, gy - 8 * s * (0.5 + growth * 0.5));
+      ctx.stroke();
+
+      // Çiçek
+      ctx.globalAlpha = 0.5 + growth * 0.5;
+      ctx.fillStyle = f.color;
+      ctx.beginPath();
+      ctx.arc(gx, gy - 9 * s * (0.5 + growth * 0.5), size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
 
   /* ---------- Çizim: ateş böcekleri ve yapraklar ---------- */
@@ -1023,11 +1069,18 @@ const CalmForest = (function () {
     let target = 0;
     if (holding) target = baseSpeed;
     else if (cruise) target = baseSpeed * 0.75;
-    // Hareket azaltma: boşta otomatik kayma yapılmaz (kamera hareketi azaltılır)
-    else if (idle && !reducedMotion) target = baseSpeed * IDLE_SPEED_FACTOR;
+    // Boşta kayma yalnızca kullanıcı açtıysa ve hareket azaltma kapalıysa
+    else if (idle && idleDrift && !reducedMotion) target = baseSpeed * IDLE_SPEED_FACTOR;
 
     currentSpeed += (target - currentSpeed) * Math.min(1, dt * 1.8);
     if (currentSpeed < 0.01) currentSpeed = 0;
+
+    // Nefesle Yürü: yumuşak adım tamponunu tüket (sıçrama yok)
+    const glide = consumeGlide(dt);
+    if (glide > 0) {
+      camera += glide;
+      if (onAdvance) onAdvance(glide);
+    }
 
     const advance = currentSpeed * dt;
     if (advance > 0) {
@@ -1158,11 +1211,29 @@ const CalmForest = (function () {
   }
 
   // Nefesle yürü modu: tek bir ritüel adımı.
-  // Hız entegrasyonunu atlar; doğrudan kamera konumunu ilerletir.
+  // "Nefesle Yürü" için yumuşak adım tamponu.
+  // stepForward() kamerayı anında ilerletirse tek karede 26 px atlar ve
+  // görsel sıçrama oluşur (normal hız 22 px/s). Bunun yerine mesafe tampona
+  // eklenir ve update(dt) içinde sabit bir oranla tüketilir.
+  const GLIDE_RATE = 30;      // px/s — 26 px yaklaşık 0.9 sn'ye yayılır
+  let glideRemaining = 0;
+
   function stepForward(px) {
     if (!(px > 0)) return;
-    camera += px;
+    glideRemaining += px;
     notifyInteraction();
+  }
+
+  // Tamponu tüketir ve bu karede kat edilecek mesafeyi döndürür.
+  function consumeGlide(dt) {
+    if (glideRemaining <= 0) return 0;
+    const step = Math.min(glideRemaining, GLIDE_RATE * dt);
+    glideRemaining -= step;
+    return step;
+  }
+
+  function setIdleDrift(value) {
+    idleDrift = !!value;
   }
 
   function setReducedMotion(value) {
@@ -1239,6 +1310,7 @@ const CalmForest = (function () {
     setHolding: setHolding,
     setCruise: setCruise,
     setBaseSpeed: setBaseSpeed,
+    setIdleDrift: setIdleDrift,
     stepForward: stepForward,
     setReducedMotion: setReducedMotion,
     setTheme: setTheme,

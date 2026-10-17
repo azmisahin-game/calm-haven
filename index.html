@@ -127,6 +127,18 @@
     </div>
 
     <div class="settings-row">
+      <button type="button" class="ctrl-btn" id="btn-idle-drift" aria-pressed="false"
+              aria-label="Boşta bırak: sen dokunmadığında sahne kendi akışına devam etsin">
+        <span class="ctrl-icon" aria-hidden="true">🍃</span>
+        <span class="ctrl-label">Boşta Bırak</span>
+      </button>
+      <p class="settings-note">
+        Kapalıyken sen dokunmadıkça sahne yerinde kalır. Sahne yine canlıdır
+        (yapraklar, su, ateş böcekleri).
+      </p>
+    </div>
+
+    <div class="settings-row">
       <span class="settings-label" id="label-volume">Ses Düzeyi</span>
       <input type="range" id="volume-range" min="0" max="100" value="45"
              aria-labelledby="label-volume">

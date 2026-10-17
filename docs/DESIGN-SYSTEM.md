@@ -189,8 +189,9 @@ inline SVG veya tipografik işaret tercih edilir.
 | Bileşen | Sınıf | Not |
 |---|---|---|
 | Üst bar düğmesi | `.ctrl-btn` | ≥48 px, cam yüzey, `aria-pressed` |
-| Segment kontrol | `.seg-btn` / `.theme-btn` | `role="group"` + `aria-pressed` |
-| Panel | `.panel` | `role="dialog"`, kaydırılabilir |
+| Segment kontrol | `.seg-btn` | `role="group"` + `aria-pressed`, ≥48 px |
+| Tema seçici | `.theme-btn` | `.seg-btn` ile aynı biçim, ≥48 px |
+| Panel (çekmece) | `.panel` | `role="dialog"`, sağ kenar, yarı saydam |
 | Ayarlar paneli | `.settings-panel` | `aria-modal="false"` (sahne kullanılabilir kalır) |
 | Mesaj kartı | `.message-card` | Sahne ızgarasının 2. satırı |
 | Bildirim | `.toast` | `role="status"` |
@@ -198,3 +199,38 @@ inline SVG veya tipografik işaret tercih edilir.
 
 Tüm panellerde ortak davranış: açılınca odak içeri girer, `Escape` kapatır,
 kapanınca odak tetikleyen düğmeye döner.
+
+### 9.1 Bahçe ve anı defteri: sağ çekmece
+
+Bahçe ve anı defteri **sağ kenardan açılan yarı saydam çekmecedir**, ortalanmış
+opak modal değil. Gerekçe: kullanıcı "panel ekranın önüne geliyor ve dünyayla
+bağlantı kurulamıyor" dedi. Çekmece dünyayı görünür bırakır.
+
+```css
+.panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(420px, 92vw);
+  background: rgba(9, 20, 32, 0.72);   /* yarı saydam */
+}
+```
+
+Çekmece açıkken `body.panel-open` sınıfı eklenir ve sahne içeriği
+`padding-right` ile sola kaydırılır; böylece nefes alanı ve mesaj kartı
+çekmecenin altında kalmaz.
+
+**Animasyon tuzağı:** Çekmece `translateX` ile kayarak açılır. `animation` ile
+`hidden` birlikte kullanılırsa `both` dolgu kipi başlangıç karesini kalıcı
+uygular ve çekmece görünüm alanının dışına taşar. Bu yüzden animasyon
+`.panel:not([hidden])` altında tanımlanır.
+
+### 9.2 Dokunma alanı kuralı
+
+Tüm etkileşimli öğeler **en az 48 px** yüksekliğinde olmalıdır. `.theme-btn`
+bir kez biçimlendirilmeden bırakılmıştı ve yalnızca ~21 px yüksekliğindeydi;
+`tests/browser.js` bunu yakaladı. Yeni bir düğme eklerken `min-height:
+var(--touch)` verin ve testin 47 px eşiğini geçtiğini doğrulayın.
+
+**Ölçüm tuzağı:** Panel giriş animasyonu `scale(0.985)` kullanır. Animasyon
+sürerken ölçüm yapılırsa 48 px'lik bir düğme ~47,3 px görünür. Testler bu
+yüzden ölçümden önce animasyonun oturmasını bekler.

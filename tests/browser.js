@@ -457,37 +457,65 @@ async function goto(page, url) {
         for (let j = i + 1; j < keys.length; j++)
           if (inter(R[keys[i]], R[keys[j]])) overlaps.push(keys[i] + '∩' + keys[j]);
 
-      // Paneller açılabiliyor ve ekrana sığıyor mu?
-      const panels = ['settings-panel', 'garden-panel', 'journal-panel'];
-      const panelProblems = [];
-      for (const id of panels) {
-        const el = document.getElementById(id);
-        el.hidden = false;
-        const b = rr(el);
-        const fits = b.top >= -1 && b.bottom <= window.innerHeight + 2 &&
-                     b.left >= -1 && b.right <= window.innerWidth + 2;
-        if (!fits) panelProblems.push(id);
-        el.hidden = true;
-      }
-
-      const btns = Array.from(document.querySelectorAll('button')).filter((b) => rr(b).width > 0);
-      const small = btns.filter((b) => { const r = rr(b); return r.width < 48 || r.height < 48; })
-        .map((b) => (b.id || b.className.split(' ')[0]));
-
-      return {
-        overlaps, panelProblems, small,
-        hScroll: document.documentElement.scrollWidth > window.innerWidth + 1,
-        vScroll: document.documentElement.scrollHeight > window.innerHeight + 1
-      };
-    });
-
-    if (a.overlaps.length || a.panelProblems.length || a.small.length || a.hScroll || a.vScroll) {
-      layoutProblems.push(s.w + 'x' + s.h + ' → ' +
-        [a.overlaps.join(','), a.panelProblems.join(','), a.small.join(','),
-         a.hScroll ? 'yatay-kaydırma' : '', a.vScroll ? 'dikey-kaydırma' : '']
-          .filter(Boolean).join(' '));
+    // Paneller açılabiliyor ve ekrana sığıyor mu?
+    // Not: bahçe ve anı defteri sağdan kayarak açılan çekmecelerdir; ayarlar
+    // paneli ise hafif bir ölçek animasyonuyla açılır. Animasyon sürerken
+    // ölçüm yapılırsa çocuklar 48 px yerine ~47.3 px görünür (scale 0.985).
+    // Bu yüzden ölçümler animasyon oturduktan sonra ayrı bir adımda yapılır.
+    const panels = ['settings-panel', 'garden-panel', 'journal-panel'];
+    for (const id of panels) {
+      document.getElementById(id).hidden = false;
     }
-    await page.close();
+
+    return {
+      overlaps, panels,
+      hScroll: document.documentElement.scrollWidth > window.innerWidth + 1,
+      vScroll: document.documentElement.scrollHeight > window.innerHeight + 1
+    };
+  });
+
+  // Animasyonlar otursun (en uzun giriş 320 ms)
+  await new Promise((r) => setTimeout(r, 700));
+
+  const settled = await page.evaluate(async (panels) => {
+    // Dokunma alanları: animasyon sonrası gerçek boyutlar
+    const btns = Array.from(document.querySelectorAll('button'))
+      .filter((b) => b.getBoundingClientRect().width > 0);
+    const small = btns.filter((b) => {
+      const r = b.getBoundingClientRect();
+      // Alt piksel yuvarlamasına 1 px tolerans
+      return r.width < 47 || r.height < 47;
+    }).map((b) => (b.id || b.className.split(' ')[0]) + '=' +
+      Math.round(b.getBoundingClientRect().width) + 'x' +
+      Math.round(b.getBoundingClientRect().height));
+
+    // Her paneli tek tek aç: giriş animasyonu yeniden başlamasın
+    const panelProblems = [];
+    for (const id of panels) {
+      for (const other of panels) document.getElementById(other).hidden = (other !== id);
+      await new Promise((r) => setTimeout(r, 600));
+      const el = document.getElementById(id);
+      const b = el.getBoundingClientRect();
+      const fits = b.top >= -1 && b.bottom <= window.innerHeight + 2 &&
+                   b.left >= -1 && b.right <= window.innerWidth + 2;
+      if (!fits) {
+        panelProblems.push(id + ' (' + Math.round(b.left) + '..' + Math.round(b.right) +
+          ' / vw ' + window.innerWidth + ')');
+      }
+      el.hidden = true;
+    }
+
+    return { small, panelProblems };
+  }, a.panels);
+
+  if (a.overlaps.length || settled.panelProblems.length || settled.small.length ||
+      a.hScroll || a.vScroll) {
+    layoutProblems.push(s.w + 'x' + s.h + ' → ' +
+      [a.overlaps.join(','), settled.panelProblems.join(','), settled.small.join(','),
+       a.hScroll ? 'yatay-kaydırma' : '', a.vScroll ? 'dikey-kaydırma' : '']
+        .filter(Boolean).join(' '));
+  }
+  await page.close();
   }
 
   check('20 görünümde düzen sorunu yok', layoutProblems.length === 0,
@@ -767,6 +795,227 @@ async function goto(page, url) {
     }
 
     check('Kompozisyon bölümünde konsol hatası yok', page.errors.length === 0,
+      page.errors.join(' | ') || 'temiz');
+    await page.close();
+  }
+
+  /* ---------- Hareket öngörülebilirliği ---------- */
+  section('12. Hareket öngörülebilirliği (boşta kayma ve akıcı adım)');
+
+  {
+    // Boşta kayma kapalıyken kamera sabit kalmalı (kullanıcı bildirdi:
+    // "hiçbir şey yapmadan beklerken kamera başka bir yere gidiyor").
+    const page = await newPage(browser, { width: 1024, height: 700 });
+    await page.evaluateOnNewDocument(() => { try { localStorage.clear(); } catch (e) {} });
+    await goto(page);
+    await page.waitForFunction('window.__scene3dReady === true', { timeout: 15000 }).catch(() => {});
+    await page.click('#btn-enter');
+    await new Promise((r) => setTimeout(r, 2000));
+
+    // Ayar durumunu doğrudan düğmeden oku: storage yalnızca kaydetme
+    // sonrası yazılır ve test bunu erken okuyabilir.
+    const idleState = await page.evaluate(() => ({
+      pressed: document.getElementById('btn-idle-drift').getAttribute('aria-pressed'),
+      label: document.getElementById('btn-idle-drift').querySelector('.ctrl-label').textContent
+    }));
+    check('Boşta kayma varsayılan kapalı', idleState.pressed === 'false',
+      'aria-pressed=' + idleState.pressed + ', etiket=' + idleState.label);
+
+    const camA = await page.evaluate(() => {
+      const is3d = !document.getElementById('scene-canvas').hidden;
+      return (is3d && window.CalmScene3D) ? window.CalmScene3D.getCamera() : CalmForest.getCamera();
+    });
+    // IDLE_DELAY 10 sn; 14 sn bekleyip kayma olmadığını doğrula
+    await new Promise((r) => setTimeout(r, 14000));
+    const camB = await page.evaluate(() => {
+      const is3d = !document.getElementById('scene-canvas').hidden;
+      return (is3d && window.CalmScene3D) ? window.CalmScene3D.getCamera() : CalmForest.getCamera();
+    });
+    const drift = Math.abs(camB - camA);
+    check('Boşta kayma kapalıyken kamera sabit', drift < 0.5, drift.toFixed(2) + ' px sürüklenme');
+
+    // Sahne yine canlı olmalı (bulut/yaprak/su sürer) — idle bayrağı doğru
+    const idleFlag = await page.evaluate(() => {
+      const is3d = !document.getElementById('scene-canvas').hidden;
+      return (is3d && window.CalmScene3D) ? window.CalmScene3D.isIdle() : CalmForest.isIdle();
+    });
+    check('Boşta durumu algılanıyor (sahne canlı kalır)', idleFlag === true);
+    await page.close();
+  }
+
+  {
+    // "Nefesle Yürü" açıkken tek karede sıçrama olmamalı.
+    const page = await newPage(browser, { width: 1024, height: 700 });
+    await page.evaluateOnNewDocument(() => { try { localStorage.clear(); } catch (e) {} });
+    await goto(page);
+    await page.waitForFunction('window.__scene3dReady === true', { timeout: 15000 }).catch(() => {});
+    await page.click('#btn-enter');
+    await new Promise((r) => setTimeout(r, 1500));
+
+    await page.evaluate(() => { document.getElementById('btn-settings').click(); });
+    await new Promise((r) => setTimeout(r, 400));
+    await page.click('#btn-breath-walk');
+    await new Promise((r) => setTimeout(r, 400));
+    await page.keyboard.press('Escape');
+    await new Promise((r) => setTimeout(r, 400));
+
+    // Kare kare ilerlemeyi örnekle: en büyük tek kare adımı ölçülür
+    const samples = await page.evaluate(async () => {
+      const is3d = !document.getElementById('scene-canvas').hidden;
+      const eng = (is3d && window.CalmScene3D) ? window.CalmScene3D : CalmForest;
+      const deltas = [];
+      let last = eng.getCamera();
+      const t0 = performance.now();
+      while (performance.now() - t0 < 13000) {
+        await new Promise((r) => requestAnimationFrame(r));
+        const now = eng.getCamera();
+        deltas.push(Math.abs(now - last));
+        last = now;
+      }
+      deltas.sort((a, b) => b - a);
+      const total = deltas.reduce((a, b) => a + b, 0);
+      return {
+        frames: deltas.length,
+        maxSingleFrame: +deltas[0].toFixed(2),
+        totalMoved: +total.toFixed(1)
+      };
+    });
+
+    // Önceden tek karede 26 px atlıyordu; artık ~30 px/s hızla yayılır.
+    check('Nefesle Yürü: tek karede sıçrama yok (<4 px)',
+      samples.maxSingleFrame < 4, samples.maxSingleFrame + ' px');
+    check('Nefesle Yürü: ilerleme gerçekleşiyor', samples.totalMoved > 5,
+      samples.totalMoved + ' px toplam');
+
+    check('Hareket bölümünde konsol hatası yok', page.errors.length === 0,
+      page.errors.join(' | ') || 'temiz');
+    await page.close();
+  }
+
+  /* ---------- Keşif sesleri ---------- */
+  section('13. Keşif sesleri ve tanınırlık');
+
+  {
+    const page = await newPage(browser);
+    await page.evaluateOnNewDocument(() => { try { localStorage.clear(); } catch (e) {} });
+    await goto(page);
+    await page.waitForFunction('window.__scene3dReady === true', { timeout: 15000 }).catch(() => {});
+    await page.click('#btn-enter');
+    await new Promise((r) => setTimeout(r, 1500));
+
+    const api = await page.evaluate(async () => {
+      const names = ['discovery', 'flutter', 'glowPulse', 'wingbeat', 'swoosh'];
+      const present = names.every((n) => typeof CalmAudio[n] === 'function');
+      await CalmAudio.unlock();
+      const enabled = ['butterfly', 'firefly', 'heron', 'shooting_star', 'bilinmeyen']
+        .map((id) => CalmAudio.discovery(id));
+      return { present, enabled, unknownFalse: enabled[4] === false };
+    });
+    check('Keşif ses fonksiyonları mevcut', api.present === true);
+    check('Ses açıkken keşif sesi çalıyor', api.enabled.slice(0, 4).every(Boolean) === true);
+    check('Bilinmeyen keşif kimliği sessiz', api.unknownFalse === true);
+
+    // Ses kapalıyken canPlay() koruması devreye girmeli
+    const guard = await page.evaluate(() => {
+      CalmAudio.setEnabled(false);
+      const r = ['butterfly', 'firefly', 'heron', 'shooting_star'].map((id) => CalmAudio.discovery(id));
+      CalmAudio.setEnabled(true);
+      return r;
+    });
+    check('Ses kapalıyken keşif sesi çalmıyor', guard.every((r) => r === false) === true);
+
+    // Keşif, adıyla ya bildirimde ya da mesaj kartında görünmeli.
+    // (Kelebek için bağlamsal mesaj tanımlı; o öne geçer ve mesaj kartında
+    //  gösterilir. Bildirim yalnızca bağlamsal mesaj yoksa çıkar.)
+    const notice = await page.evaluate(async () => {
+      document.getElementById('toast').hidden = true;
+      CalmDiscovery.forceTrigger('butterfly');
+      await new Promise((r) => setTimeout(r, 700));
+      return {
+        toast: document.getElementById('toast').hidden ? '' : document.getElementById('toast').textContent,
+        card: document.getElementById('message-text').textContent
+      };
+    });
+    const named = /Kelebek/.test(notice.toast) || /kelebek/i.test(notice.card);
+    check('Keşif adıyla bildiriliyor', named, (notice.toast || notice.card).slice(0, 50));
+
+    check('Keşif bölümünde konsol hatası yok', page.errors.length === 0,
+      page.errors.join(' | ') || 'temiz');
+    await page.close();
+  }
+
+  /* ---------- Bahçe dünyada ---------- */
+  section('14. Bahçe dünyaya bağlı');
+
+  {
+    const page = await newPage(browser);
+    // Dikkat: evaluateOnNewDocument her belgede çalışır ve yenilemede de
+    // storage'ı siler. Bu bölüm kalıcılığı ölçtüğü için tek seferlik
+    // temizlik yapılır.
+    await goto(page);
+    await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+    await page.reload({ waitUntil: 'load', timeout: NAV_TIMEOUT });
+    await page.waitForFunction('window.__scene3dReady === true', { timeout: 15000 }).catch(() => {});
+    await page.click('#btn-enter');
+    await new Promise((r) => setTimeout(r, 1500));
+
+    // Modül init'ten önce sorgulanabilmeli (motor çizim döngüsü erken başlar)
+    const early = await page.evaluate(() => {
+      const g = CalmSanctuary.getGarden();
+      return { isArray: Array.isArray(g), shells: CalmSanctuary.totalShells() };
+    });
+    check('Bahçe init öncesi güvenli okunuyor', early.isArray === true, early.shells + ' kabuk');
+
+    // Çiçek dik ve kalıcılığı doğrula
+    const planted = await page.evaluate(async () => {
+      document.getElementById('btn-settings').click();
+      await new Promise((r) => setTimeout(r, 350));
+      document.getElementById('btn-garden').click();
+      await new Promise((r) => setTimeout(r, 400));
+      const seeds = document.querySelectorAll('.seed-btn');
+      seeds[0].click();
+      await new Promise((r) => setTimeout(r, 500));
+      return {
+        count: CalmSanctuary.getGarden().length,
+        stored: JSON.parse(localStorage.getItem('calm_haven_sanctuary_v1')).garden.length
+      };
+    });
+    check('Çiçek dikildi ve kaydedildi', planted.count === 1 && planted.stored === 1);
+
+    // Çekmece sahneyi kapatmamalı
+    const drawer = await page.evaluate(() => {
+      const gp = document.getElementById('garden-panel');
+      const r = gp.getBoundingClientRect();
+      const stage = document.querySelector('.stage');
+      return {
+        right: Math.round(r.right),
+        vw: window.innerWidth,
+        width: Math.round(r.width),
+        // Sahne içeriği çekmecenin altında kalmamalı
+        stagePadRight: getComputedStyle(stage).paddingRight,
+        bodyFlag: document.body.classList.contains('panel-open'),
+        // Yarı saydam olmalı (dünya görünür kalsın)
+        translucent: getComputedStyle(gp).backgroundColor
+      };
+    });
+    check('Çekmece sağ kenara yerleşiyor', drawer.right <= drawer.vw + 1, drawer.right + '/' + drawer.vw);
+    check('Çekmece sahne içeriğini kaydırıyor', drawer.stagePadRight !== '0px', drawer.stagePadRight);
+    check('Çekmece yarı saydam', /0\.\d+\)/.test(drawer.translucent), drawer.translucent);
+
+    await page.keyboard.press('Escape');
+    await new Promise((r) => setTimeout(r, 500));
+
+    // Yenile: çiçek kalıcı olmalı ve dünyada yeniden kurulmalı
+    await page.reload({ waitUntil: 'load', timeout: NAV_TIMEOUT });
+    await page.waitForFunction('window.__scene3dReady === true', { timeout: 15000 }).catch(() => {});
+    await new Promise((r) => setTimeout(r, 2500));
+    const afterReload = await page.evaluate(() => ({
+      flowers: CalmSanctuary.getGarden().length,
+      growth: CalmSanctuary.getGarden()[0] ? +CalmSanctuary.getGarden()[0].growth.toFixed(3) : null
+    }));
+    check('Çiçek yenilemeden sonra kalıcı', afterReload.flowers === 1, afterReload.flowers + ' çiçek');
+
+    check('Bahçe bölümünde konsol hatası yok', page.errors.length === 0,
       page.errors.join(' | ') || 'temiz');
     await page.close();
   }

@@ -186,7 +186,32 @@ dünya değerlerinin gerçekten değiştiğini ölçer.
 
 ---
 
-## 7. Zaman ölçümü tuzağı
+## 7. Hareket modeli
+
+Kamera hareketinin dört kaynağı vardır ve hepsi tek bir yerde, motorun
+`update(dt)` döngüsünde birleşir:
+
+| Kaynak | Nasıl çalışır | Varsayılan |
+|---|---|---|
+| Kullanıcı girdisi | `holding` (tıklama/`Space`/`W`) → `baseSpeed` | Etkin |
+| Otomatik gezinti | `cruise` → `baseSpeed * 0.75` | Kapalı (düğme) |
+| Boşta kayma | `idle && idleDrift` → `baseSpeed * 0.25` | **Kapalı** (ayar) |
+| Nefesle Yürü | `glideRemaining` tamponu → `GLIDE_RATE` | Kapalı (ayar) |
+
+**Boşta kayma kuralı:** 10 saniye etkileşimsizlikten sonra kamera kendiliğinden
+kaymaya başlarsa kullanıcı bunu "habersiz hareket" olarak yaşar. Bu yüzden
+`idleDrift` varsayılan olarak **kapalıdır** ve yalnızca Ayarlar'dan açılır.
+`prefers-reduced-motion` açıkken her durumda kapalı kalır.
+
+**Nefesle Yürü kuralı:** `stepForward(px)` kamerayı **anında** ilerletmez.
+Mesafe bir tampona (`glideRemaining`) eklenir ve `update(dt)` içinde
+`consumeGlide(dt)` ile sabit oranda tüketilir. Anlık ilerletme tek karede
+26 px atlar ve görünür bir sıçrama yaratır (normal hız 22 px/s); yumuşak tampon
+bunu ~1 saniyeye yayar. Her iki motor da aynı deseni kullanır.
+
+---
+
+## 8. Zaman ölçümü tuzağı
 
 Ana döngüdeki `dt` **0.05 sn ile sınırlandırılır** (`Math.min(dt, 0.05)`). Bu,
 sekme arka plandan döndüğünde simülasyonun sıçramasını engeller.
@@ -199,7 +224,7 @@ girmemesine yol açtı.
 
 ---
 
-## 8. Veri akışı
+## 9. Veri akışı
 
 ```text
 Nefes motoru (breathing.js)
@@ -230,7 +255,7 @@ Motor hareketi → onAdvance(px) → app.accumulate(px)
 
 ---
 
-## 9. Kalıcılık
+## 10. Kalıcılık
 
 İki bağımsız `localStorage` anahtarı:
 
@@ -247,7 +272,7 @@ Ayrıntılar ve sınırlamalar: [PRIVACY.md](PRIVACY.md)
 
 ---
 
-## 10. Hata davranışı
+## 11. Hata davranışı
 
 | Senaryo | Davranış |
 |---|---|

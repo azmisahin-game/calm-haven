@@ -30,7 +30,10 @@
       walkSpeed: 0.45,
       breathMode: 'resonance',
       theme: 'forest',
-      breathWalk: false
+      breathWalk: false,
+      // Boşta kayma varsayılan olarak kapalı: kullanıcı hiçbir şey
+      // yapmazken kamera kendiliğinden gitmemeli. İsteyen açar.
+      idleDrift: false
     }
   };
 
@@ -146,6 +149,7 @@
       s.theme = DEFAULT_SAVE.settings.theme;
     }
     s.breathWalk = s.breathWalk === true;
+    s.idleDrift = s.idleDrift === true;
 
     return state;
   }
@@ -415,11 +419,13 @@
     }
 
     Engine.setBaseSpeed(BASE_SPEED * s.walkSpeed);
+    if (Engine.setIdleDrift) Engine.setIdleDrift(s.idleDrift);
 
     if (s.breathMode === 'sigh') CalmBreathing.setMode('sigh');
     else CalmBreathing.setMode('resonance');
 
     syncBreathWalkButton();
+    syncIdleDriftButton();
   }
 
   /* ---------- Nefesle yürü (ritüel modu) ---------- */
@@ -440,6 +446,29 @@
     els.btnBreathWalk.setAttribute('aria-pressed', String(on));
     const label = els.btnBreathWalk.querySelector('.ctrl-label');
     if (label) label.textContent = on ? 'Nefesle Yürü: Açık' : 'Nefesle Yürü';
+  }
+
+  /* ---------- Boşta kayma ---------- */
+
+  // Kullanıcı hiçbir şey yapmazken kameranın kendiliğinden gitmesi
+  // öngörülemezdi. Varsayılan kapalı; açılırsa sahne yavaşça kendi
+  // akışına devam eder (hareket azaltmada yine kapalı kalır).
+  function setIdleDrift(value) {
+    state.settings.idleDrift = !!value;
+    if (Engine.setIdleDrift) Engine.setIdleDrift(state.settings.idleDrift);
+    syncIdleDriftButton();
+    saveState();
+    showToast(state.settings.idleDrift
+      ? 'Boşta bırakma açık: sahne kendi akışına yavaşça devam edecek.'
+      : 'Boşta bırakma kapalı: sen dokunmadıkça sahne yerinde kalacak.');
+  }
+
+  function syncIdleDriftButton() {
+    if (!els.btnIdleDrift) return;
+    const on = !!state.settings.idleDrift;
+    els.btnIdleDrift.setAttribute('aria-pressed', String(on));
+    const label = els.btnIdleDrift.querySelector('.ctrl-label');
+    if (label) label.textContent = on ? 'Boşta Bırak: Açık' : 'Boşta Bırak';
   }
 
   // Nefes motoru her veriş sonunda çağırır
@@ -670,7 +699,8 @@
         const planted = CalmSanctuary.plant(k.id);
         if (planted) {
           renderGarden();
-          showToast(k.name + ' diktin. Büyüyecek ve hep orada kalacak.');
+          // Çiçek artık dünyada da görünür; kullanıcıya nerede olduğunu söyle.
+          showToast(k.name + ' diktin. Kulübenin yanında büyüyecek.');
         } else {
           showToast('Bahçen doldu. Hiçbir çiçek kaybolmadı, hepsi yerinde.');
         }
@@ -740,6 +770,9 @@
     }
 
     el.hidden = !open;
+
+    // Sahne içeriğinin çekmecenin altında kalmaması için gövdeye işaret koy
+    document.body.classList.toggle('panel-open', open);
 
     // Aynı anda yalnızca bir panel açık kalsın
     if (open) {
@@ -908,6 +941,12 @@
     if (els.btnBreathWalk) {
       els.btnBreathWalk.addEventListener('click', function () {
         setBreathWalk(!state.settings.breathWalk);
+      });
+    }
+
+    if (els.btnIdleDrift) {
+      els.btnIdleDrift.addEventListener('click', function () {
+        setIdleDrift(!state.settings.idleDrift);
       });
     }
 
@@ -1136,6 +1175,7 @@
     els.segBtns = Array.prototype.slice.call(document.querySelectorAll('.seg-btn'));
     els.themeBtns = Array.prototype.slice.call(document.querySelectorAll('.theme-btn'));
     els.btnBreathWalk = document.getElementById('btn-breath-walk');
+    els.btnIdleDrift = document.getElementById('btn-idle-drift');
 
     // Sığınak öğeleri
     els.gardenPanel = document.getElementById('garden-panel');
@@ -1207,12 +1247,20 @@
       reducedMotion: reducedMotion,
       onDiscover: function (name, message) {
         // Keşif yalnızca bir an'dır: kullanıcıdan hiçbir şey istenmez.
-        // Bağlamsal mesaj varsa o öne geçer.
+        // Türüne özgü yumuşak bir ses çalınır (ses açıksa).
+        const id = discoveryIdFor(name);
+        if (id && typeof CalmAudio !== 'undefined' && CalmAudio) {
+          CalmAudio.discovery(id);
+        }
+
+        // Bağlamsal mesaj varsa o öne geçer; yoksa adıyla birlikte bildir.
         let handled = false;
         if (typeof CalmContext !== 'undefined' && CalmContext) {
-          handled = !!CalmContext.onDiscovery(discoveryIdFor(name));
+          handled = !!CalmContext.onDiscovery(id);
         }
-        if (!handled) showToast(message);
+        if (!handled) {
+          showToast(name + ' — ' + message);
+        }
       }
     });
 

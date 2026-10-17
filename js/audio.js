@@ -258,6 +258,84 @@ const CalmAudio = (function () {
     return min + Math.random() * (max - min);
   }
 
+  /* ---------- Keşif sesleri ---------- */
+
+  // Keşifler sessizce geçip gidiyordu; kullanıcı "ne geçti?" diye
+  // belirsizlik yaşıyordu. Her keşif türüne yumuşak, tek seferlik ve
+  // ayırt edilebilir bir ses eşlik eder. Hepsi canPlay() ile korunur ve
+  // level ile ölçeklenir; harici dosya yoktur.
+
+  // Kelebek: kısa, hafif, iki kanat çırpışı (bant geçiren gürültü)
+  function flutter() {
+    if (!canPlay()) return false;
+    fire(getBurstBuffer(), 'bandpass', 3200, 1.4, 0.045 * level, -0.25);
+    setTimeout(function () {
+      if (canPlay()) fire(getBurstBuffer(), 'bandpass', 2600, 1.4, 0.038 * level, 0.25);
+    }, 130);
+    return true;
+  }
+
+  // Ateş böceği: yumuşak, yükselip sönen tek bir ışıma tonu
+  function glowPulse() {
+    if (!canPlay()) return false;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.exponentialRampToValueAtTime(760, now + 0.5);
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.035 * level, now + 0.22);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+
+    osc.connect(g);
+    g.connect(master);
+    osc.start(now);
+    osc.stop(now + 1.0);
+    return true;
+  }
+
+  // Balıkçıl: alçak, yumuşak bir kanat çırpışı (iki düşük gürültü vuruşu)
+  function wingbeat() {
+    if (!canPlay()) return false;
+    fire(getBurstBuffer(), 'lowpass', 260, 0.9, 0.055 * level, -0.4);
+    setTimeout(function () {
+      if (canPlay()) fire(getBurstBuffer(), 'lowpass', 210, 0.9, 0.048 * level, 0.4);
+    }, 240);
+    return true;
+  }
+
+  // Kayan yıldız: hızla geçen, incelip kaybolan bir ıslık
+  function swoosh() {
+    if (!canPlay()) return false;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.exponentialRampToValueAtTime(1800, now + 0.35);
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.03 * level, now + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+
+    osc.connect(g);
+    g.connect(master);
+    osc.start(now);
+    osc.stop(now + 0.7);
+    return true;
+  }
+
+  // Keşif kimliğine göre ses seç. Bilinmeyen kimlik sessiz kalır.
+  function discovery(id) {
+    if (id === 'butterfly') return flutter();
+    if (id === 'firefly') return glowPulse();
+    if (id === 'heron') return wingbeat();
+    if (id === 'shooting_star') return swoosh();
+    return false;
+  }
+
   /* ---------- Yaşam döngüsü ---------- */
 
   function supported() {
@@ -384,7 +462,12 @@ const CalmAudio = (function () {
     supported: supported,
     footstep: footstep,
     rustle: rustle,
-    chirp: chirp
+    chirp: chirp,
+    discovery: discovery,
+    flutter: flutter,
+    glowPulse: glowPulse,
+    wingbeat: wingbeat,
+    swoosh: swoosh
   };
 
   return api;

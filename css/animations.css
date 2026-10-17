@@ -15,17 +15,17 @@
   }
 }
 
-/* Ortalanmış paneller için ayrı keyframe.
-   panel-in'in transform'u, .panel üzerindeki translate(-50%, -50%)
-   ortalamasını ezerdi; bu yüzden panel sağa/aşağı kayıyordu. */
-@keyframes panel-center-in {
+/* Sağ kenardan açılan çekmece.
+   `transform` kullanan bir keyframe, panelin konumlandırmasını ezmemeli;
+   bu yüzden çekmece `translateX` ile kaydırılır ve panel konumu sabit kalır. */
+@keyframes panel-slide-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.985);
+    transform: translateX(24px);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateX(0);
   }
 }
 

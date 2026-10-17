@@ -7,6 +7,73 @@ Kullanıcıyı etkileyen anlamlı değişiklikler. Biçim:
 
 ## [Yayınlanmadı]
 
+### Değişti — Hareket öngörülebilirliği
+
+- **Boşta kayma varsayılan olarak kapatıldı.** Önceden 10 saniye
+  etkileşimsizlikten sonra kamera habersizce kaymaya başlıyordu; kullanıcı bunu
+  "hiçbir şey yapmadan beklerken başka bir yere gitme" olarak yaşıyordu. Artık
+  varsayılan olarak sahne yerinde kalır ve Ayarlar'da **"Boşta Bırak"** düğmesi
+  ile açılabilir. Kapalıyken de sahne canlıdır (yapraklar, su, ateş böcekleri,
+  bulutlar). Hareket azaltma tercihinde bu ayar yine kapalı kalır.
+- **"Nefesle Yürü" sıçraması giderildi.** Her nefes verişinde kamera tek karede
+  26 piksel atlıyordu (normal hız 22 px/s olduğu için görünür bir sıçrama).
+  Adım artık yumuşak bir tamponda biriktirilir ve yaklaşık bir saniyeye yayılır.
+  Ölçüm: en büyük tek kare adımı 26 px → **1,5 px**.
+
+### Eklendi — Keşifler artık algılanabilir
+
+- **Keşif sesleri.** Kelebek, ateş böceği, balıkçıl ve kayan yıldız için
+  prosedürel, yumuşak ve ayırt edilebilir tek seferlik sesler eklendi. Hepsi
+  `canPlay()` ile korunur, ses düzeyiyle ölçeklenir ve harici dosya kullanmaz.
+- **Ayırt edilebilir biçimler.** 3B sahnede keşifler önceden aynı küreydi.
+  Artık her türün kendi silueti var: kelebek iki çırpan kanat, balıkçıl gövde +
+  boyun + bacaklar, kayan yıldız uzun bir iz, ateş böceği nabız gibi büyüyen
+  bir çekirdek.
+- **Adıyla bildirim.** Keşif bildirimi artık türün adını içerir
+  ("Kelebek — Bir kelebek yoldan geçti...").
+
+### Değişti — Paneller sahneyi kapatmıyor
+
+- **Bahçe ve anı defteri artık sağ kenardan açılan yarı saydam çekmece.**
+  Önceden ekranın ortasında opak bir karttı (0.92) ve dünyayı tamamen
+  kapatıyordu; kullanıcı "panel ekranın önüne geliyor" diyordu. Çekmece 420 px
+  genişliğinde, arka planı 0.72 opak ve arkasında sahne görünür kalıyor.
+  Çekmece açıkken sahne içeriği sağa kaydırılır, böylece nefes alanı ve mesaj
+  kartı altında kalmaz. Odak yönetimi ve `Escape` davranışı korunur.
+
+### Eklendi — Bahçe dünyaya bağlandı
+
+- **Dikilen çiçekler artık kulübenin yanında görünür.** Önceden bahçe yalnızca
+  ayarlardaki soyut bir ızgaraydı ve kullanıcı "bastığımda bir şey olmuyor"
+  diyordu. Çiçekler 3B sahnede ve 2B yedek motorda kulübenin yanındaki bahçe
+  bölgesine yerleştirilir; büyüdükçe boyutları artar ve **asla solmaz**.
+  Bildirim de nerede olduğunu söyler: "Kadife diktin. Kulübenin yanında
+  büyüyecek."
+- İlk kulübe kameraya yaklaştırıldı (60–110 birim → 26 birim), böylece bahçe
+  dakikalar yerine saniyeler içinde görülür.
+
+### Düzeltildi
+
+- **`CalmSanctuary` init öncesi çöküyordu.** Görsel motorların çizim döngüsü
+  sanctuary `init()` çağrısından önce başlar ve bahçeyi okur; bu
+  `Cannot read properties of null (reading 'garden')` hatası veriyordu. Tüm
+  okuma fonksiyonları artık `ensureLoaded()` ile güvenli.
+- **`.theme-btn` biçimlendirilmemişti** ve yalnızca ~21 px yüksekliğindeydi;
+  bu, 48 px dokunma alanı kuralının ihlaliydi. Artık `.seg-btn` ile aynı
+  görsel dili paylaşıyor ve 48 px yüksekliğinde.
+- **Çekmece giriş animasyonu** `animation` + `hidden` birlikte kullanıldığında
+  `both` dolgu kipiyle başlangıç karesini kalıcı uyguluyor ve çekmeceyi 24 px
+  taşırıyordu. Animasyon artık yalnızca görünür durumda uygulanır.
+
+---
+
+## [3.0] — Derin daldırma ve bağlamsal keşif
+
+### Eklendi
+
+- **3B sahne (Three.js).** Gerçek hacimli ağaçlar, kayalar, dere/okyanus ve
+  kulübe. `W`/`S` yürüme, `A`/`D` dönme, yürürken kamera sallanması.
+
 ### Düzeltildi — Erişilebilirlik
 
 - **Yakınlaştırma engeli kaldırıldı.** `viewport` etiketindeki

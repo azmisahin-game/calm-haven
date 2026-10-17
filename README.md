@@ -58,11 +58,16 @@ duyulur; nadiren bir kuş cıvıldar. Tüm seviyeler düşüktür — amaç dikk
 değil, toprakla temas hissi.
 
 **Keşifler.** Kayan yıldız, balıkçıl, kelebek ve ateş böceği rastgele belirir.
-Yakalamak, tıklamak veya yetişmek gerekmez. Kaçırılan bir an yoktur: görülmezse
-sadece kaybolur ve başka bir zamanda yeniden gelir.
+Her birinin kendi silueti ve kendi yumuşak sesi vardır; bildirim de adını söyler
+("Kelebek — ..."). Yakalamak, tıklamak veya yetişmek gerekmez. Kaçırılan bir an
+yoktur: görülmezse sadece kaybolur ve başka bir zamanda yeniden gelir.
 
 **Nefesle Yürü.** Ayarlardan açılır. Her nefes verişinde bir adım atılır; tuşa
-basmanız gerekmez. Yürümek bir ritüele dönüşür ve RSI riski ortadan kalkar.
+basmanız gerekmez. Adım anlık değil, yumuşak bir kayma olarak ilerler. Yürümek
+bir ritüele dönüşür ve RSI riski ortadan kalkar.
+
+**Boşta Bırak.** Varsayılan olarak kapalıdır: siz dokunmadıkça sahne yerinde
+kalır. Açarsanız kamera çok yavaşça kendi akışına devam eder.
 
 **İki ortam.** 🌲 **Orman** (gece mavisi, çam, dere) ve 🏝️ **Issız Ada**
 (gün batımı, palmiye, okyanus dalgaları).
@@ -111,13 +116,16 @@ normal rotasyon duraklar, sonra kaldığı yerden devam eder.
 
 ## Kişisel sığınak (3.0)
 
-- **Bahçe.** 6×4 saksıya çiçek dikersiniz. Her çiçek zamanla **büyür ve öyle
-  kalır** — hiçbiri solmaz, hiçbiri kaybolmaz, sulamanız gerekmez.
+- **Bahçe.** 6×4 saksıya çiçek dikersiniz. Diktiğiniz çiçekler **kulübenin
+  yanındaki bahçe bölgesinde dünyada da görünür**; büyüdükçe boyutları artar ve
+  **hiçbiri solmaz**, hiçbiri kaybolmaz, sulamanız gerekmez.
 - **Deniz kabukları.** Ada temasında kıyıda nadiren kabuk bulursunuz. Toplamak
   tüketmek değildir: koleksiyon büyür, hiçbir şey eksilmez.
 - **Sal.** 8 kabuk birikince kendiliğinden hazır olur; kaynak harcanmaz.
 - **Anı defteri.** İsteğe bağlıdır ve **tamamen cihazda kalır**. Sunucuya
   gitmez, paylaşılmaz, analitik yoktur. "Defteri Temizle" ile silinir.
+- Bahçe ve anı defteri **sağ kenardan açılan yarı saydam çekmecede** gösterilir;
+  dünya arkasında görünür kalır ve daldırma bozulmaz.
 
 ---
 
@@ -166,8 +174,14 @@ python3 -m http.server 8000
 | Sesi aç / kapat | `M` **veya** üst bardaki ses düğmesi |
 | Ayarlar | `Esc` |
 
-Ayarlar panelinden ayrıca **Nefesle Yürü**, **ortam teması** (Orman / Issız Ada),
-**bahçe**, **anı defteri**, ses düzeyi ve yürüyüş hızı seçilebilir.
+Ayarlar panelinden ayrıca **Nefesle Yürü**, **Boşta Bırak**, **ortam teması**
+(Orman / Issız Ada), **bahçe**, **anı defteri**, ses düzeyi ve yürüyüş hızı
+seçilebilir.
+
+**Hareket senin kontrolünde.** Sahne sen dokunmadıkça yerinde kalır; "Boşta
+Bırak" kapalıyken kamera kendiliğinden gitmez. Açıkken bile sahne canlıdır
+(yapraklar, su, ateş böcekleri). "Nefesle Yürü" her verişte bir adım atar ve
+adım yumuşakça kayar, sıçramaz.
 
 Tüm düğmeler en az 48×48 piksel dokunma alanına sahiptir.
 

@@ -28,6 +28,8 @@ const CalmScene3D = (function () {
   const IDLE_DELAY = 10;
   const IDLE_SPEED_FACTOR = 0.25;
   const IDLE_STEP_FACTOR = 0.06;
+  // Boşta kayma varsayılan olarak KAPALIDIR (bkz. canvas.js aynı not).
+  let idleDrift = false;
   const TURN_SPEED = 1.5;      // rad/s (A/D)
 
   const THEMES = {
@@ -467,6 +469,16 @@ const CalmScene3D = (function () {
     group.add(cat);
     group.userData.cat = cat;
 
+    // Bahçe: dikilen çiçekler kulübenin yanında, dünyada görünür.
+    // Önceden bahçe yalnızca ayarlardaki soyut ızgaraydı; kullanıcı
+    // "bastığımda bir şey olmuyor" diyordu. Artık çiçekler sahneye
+    // yerleştirilir ve büyüdükçe boyutları artar (asla solmaz).
+    const garden = new THREE.Group();
+    garden.position.set(-(bodyW / 2) - 2.4, 0, bodyD / 2 - 1.2);
+    group.add(garden);
+    group.userData.garden = garden;
+    group.userData.flowers = [];
+
     group.position.set(x, 0, z);
     return group;
   }
@@ -537,9 +549,11 @@ const CalmScene3D = (function () {
     seedInstances();
     buildInstanced();
 
-    // Kulübeler
+    // Kulübeler. İlk kulübe kameraya daha yakın başlar: kullanıcı bahçeyi
+    // kısa sürede görsün (önceden 60-110 birim ötedeydi, dakikalar alıyordu).
+    const cabinSpacing = 55;
     for (let i = 0; i < 3; i++) {
-      const c = createCabin(rand(8, 16), -(i + 1) * 60);
+      const c = createCabin(rand(8, 16), -(i * cabinSpacing) - 26);
       scene.add(c);
       cabinPool.push(c);
     }
@@ -550,7 +564,10 @@ const CalmScene3D = (function () {
   }
 
   function rebuildScene() {
-    // Temizle
+    // Temizle. Sahne çocukları kaldırılırken keşif nesnelerinin geometri ve
+    // materyalleri de serbest bırakılır; aksi halde tema değişimlerinde
+    // GPU belleği birikir.
+    for (let i = 0; i < discoObjects.length; i++) disposeDiscovery(discoObjects[i]);
     while (scene.children.length) scene.remove(scene.children[0]);
     cabinPool.length = 0;
     pineFoliage = null; pineTrunks = null;
@@ -581,7 +598,7 @@ const CalmScene3D = (function () {
     for (let i = 0; i < cabinPool.length; i++) {
       const c = cabinPool[i];
       if (c.position.z > camZ + RECYCLE_BEHIND) {
-        c.position.z = camZ - rand(60, SPREAD + 40);
+        c.position.z = camZ - rand(26, SPREAD + 30);
         c.position.x = rand(8, 16);
       }
     }
@@ -589,7 +606,86 @@ const CalmScene3D = (function () {
 
   /* ---------- Kulübe görselleri ---------- */
 
+  // Bahçe: dikilen çiçekleri kulübenin yanında göster.
+  // Sanctuardaki büyüme değeri (0..1) doğrudan ölçeğe yansır; çiçek
+  // olgunlaştıktan sonra sabit kalır, asla küçülmez.
+  function syncGarden() {
+    if (typeof CalmSanctuary === 'undefined' || !CalmSanctuary) return;
+
+    const flowers = CalmSanctuary.getGarden();
+    if (!flowers.length && !gardenSignature) return;
+
+    // Değişiklik yoksa her karede yeniden kurma (pahalı)
+    const sig = flowers.map(function (f) { return f.kind + ':' + f.x + ':' + f.y; }).join('|');
+    if (sig === gardenSignature) {
+      updateGardenGrowth(flowers);
+      return;
+    }
+    gardenSignature = sig;
+
+    for (let i = 0; i < cabinPool.length; i++) {
+      const cabin = cabinPool[i];
+      const holder = cabin.userData.garden;
+      if (!holder) continue;
+
+      // Eski çiçekleri serbest bırak
+      while (holder.children.length) {
+        const old = holder.children[0];
+        holder.remove(old);
+        disposeDiscovery(old);
+      }
+
+      // Izgara konumlarını sahne koordinatına çevir (6x4 ızgara, 0.7 birim)
+      const SPACING = 0.7;
+      for (let k = 0; k < flowers.length; k++) {
+        const f = flowers[k];
+        const gx = (f.x - 2.5) * SPACING;
+        const gz = (f.y - 1.5) * SPACING;
+
+        const stem = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.02, 0.025, 0.5, 4),
+          new THREE.MeshLambertMaterial({ color: 0x2d5c44 })
+        );
+        stem.position.set(gx, 0.25, gz);
+
+        const bloom = new THREE.Mesh(
+          new THREE.SphereGeometry(0.11, 7, 6),
+          new THREE.MeshLambertMaterial({ color: new THREE.Color(f.color) })
+        );
+        bloom.position.set(gx, 0.55, gz);
+
+        const flower = new THREE.Group();
+        flower.add(stem);
+        flower.add(bloom);
+        flower.userData.bloom = bloom;
+        flower.userData.stem = stem;
+        holder.add(flower);
+      }
+    }
+
+    updateGardenGrowth(flowers);
+  }
+
+  // Büyüme: ölçek yalnızca artar, asla geri gitmez.
+  function updateGardenGrowth(flowers) {
+    for (let i = 0; i < cabinPool.length; i++) {
+      const holder = cabinPool[i].userData.garden;
+      if (!holder) continue;
+      for (let k = 0; k < holder.children.length && k < flowers.length; k++) {
+        const flower = holder.children[k];
+        const growth = Math.max(0, Math.min(1, flowers[k].growth));
+        const scale = 0.35 + growth * 0.65;
+        flower.scale.setScalar(scale);
+        if (flower.userData.bloom) {
+          // Tomurcuktan tam açmış çiçeğe
+          flower.userData.bloom.scale.setScalar(0.6 + growth * 0.4);
+        }
+      }
+    }
+  }
+
   function updateCabins() {
+    syncGarden();
     for (let i = 0; i < cabinPool.length; i++) {
       const c = cabinPool[i];
       const d = c.userData;
@@ -622,19 +718,77 @@ const CalmScene3D = (function () {
 
   let discoObjects = [];
 
+  // Bahçe: son kurulan çiçek düzeni imzası. Her karede yeniden kurmayı önler.
+  let gardenSignature = '';
+
+  // Keşif nesneleri: her tür için ayırt edilebilir biçim.
+  // Önceden hepsi aynı küreydi; kullanıcı "ne geçti?" diye ayırt edemiyordu.
+  function makeDiscoveryObject(id) {
+    const g = new THREE.Group();
+    const basic = (color) => new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.9 });
+
+    if (id === 'butterfly') {
+      // İki ince kanat: çırparken ayırt edilir
+      const wingGeo = new THREE.PlaneGeometry(0.5, 0.32);
+      const wl = new THREE.Mesh(wingGeo, basic(0xf59e0b));
+      const wr = new THREE.Mesh(wingGeo, basic(0xf59e0b));
+      wl.position.x = -0.24;
+      wr.position.x = 0.24;
+      g.add(wl);
+      g.add(wr);
+      g.userData.wingL = wl;
+      g.userData.wingR = wr;
+      g.userData.kind = 'butterfly';
+    } else if (id === 'heron') {
+      // Gövde + uzun boyun + bacaklar: su kuşu silueti
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), basic(0xdfeee9));
+      body.scale.set(1.5, 0.9, 1);
+      g.add(body);
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.9, 5), basic(0xdfeee9));
+      neck.position.set(0.34, 0.42, 0);
+      neck.rotation.z = -0.35;
+      g.add(neck);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 5), basic(0xdfeee9));
+      head.position.set(0.5, 0.82, 0);
+      g.add(head);
+      const beak = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.3, 4), basic(0xd9c48a));
+      beak.position.set(0.68, 0.8, 0);
+      beak.rotation.z = -Math.PI / 2;
+      g.add(beak);
+      const legGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.5, 4);
+      const l1 = new THREE.Mesh(legGeo, basic(0xdfeee9));
+      const l2 = new THREE.Mesh(legGeo, basic(0xdfeee9));
+      l1.position.set(-0.06, -0.45, 0);
+      l2.position.set(0.06, -0.45, 0);
+      g.add(l1);
+      g.add(l2);
+      g.userData.kind = 'heron';
+    } else if (id === 'shooting_star') {
+      // Uzun bir iz + parlak baş: kayan yıldız
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), basic(0xffffff));
+      g.add(head);
+      const trail = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.09, 3.4, 5), basic(0xcfe4f2));
+      trail.rotation.z = Math.PI / 2;
+      trail.position.set(-1.7, 0.35, 0);
+      g.add(trail);
+      g.userData.kind = 'shooting_star';
+    } else {
+      // Ateş böceği: küçük gövde, parıltı rengiyle
+      const core = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 5), basic(0x10b981));
+      g.add(core);
+      g.userData.kind = 'firefly';
+    }
+
+    g.visible = false;
+    discoveryGroup.add(g);
+    return g;
+  }
+
   function syncDiscoveries() {
-    // Basit havuz: gereken sayıda nesne üret/yok et
+    // Havuzu tür başına yönet: gereken sayıda nesne üret
     while (discoObjects.length < discoveries.length) {
-      const g = new THREE.Group();
-      const sprite = new THREE.Mesh(
-        new THREE.SphereGeometry(0.16, 8, 6),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 })
-      );
-      g.add(sprite);
-      g.userData.sprite = sprite;
-      g.userData.tail = null;
-      discoveryGroup.add(g);
-      discoObjects.push(g);
+      const d = discoveries[discoObjects.length];
+      discoObjects.push(makeDiscoveryObject(d ? d.id : 'firefly'));
     }
 
     for (let i = 0; i < discoObjects.length; i++) {
@@ -642,32 +796,67 @@ const CalmScene3D = (function () {
       const d = discoveries[i];
       if (!d) { g.visible = false; continue; }
 
+      // Tür değiştiyse (havuz yeniden kullanımı) yeni biçim kur.
+      // Eski geometri ve materyaller serbest bırakılır; aksi halde uzun
+      // oturumlarda GPU belleği birikir.
+      if (g.userData.kind !== d.id) {
+        discoveryGroup.remove(g);
+        disposeDiscovery(g);
+        const replacement = makeDiscoveryObject(d.id);
+        discoObjects[i] = replacement;
+        replacement.visible = false;
+        continue;
+      }
+
       g.visible = true;
       const p = Math.max(0, Math.min(1, d.progress));
       const fade = Math.min(1, Math.min(p, 1 - p) * 6);
 
       if (d.id === 'shooting_star') {
         g.position.set(rand(-30, 30), 40 + p * 10, camZ - 120 + p * 40);
-        g.userData.sprite.scale.setScalar(0.8);
-        g.userData.sprite.material.color.setHex(0xffffff);
-        g.userData.sprite.material.opacity = fade;
+        g.rotation.z = -0.25;
+        setDiscoveryOpacity(g, fade);
       } else if (d.id === 'butterfly') {
         g.position.set(Math.sin(p * 6) * 5, 1.4 + Math.sin(p * 9) * 0.4, camZ - 14);
-        g.userData.sprite.scale.setScalar(0.7);
-        g.userData.sprite.material.color.setHex(0xf59e0b);
-        g.userData.sprite.material.opacity = fade * 0.9;
+        // Kanat çırpma
+        const flap = Math.sin(time * 14) * 0.9;
+        if (g.userData.wingL) g.userData.wingL.rotation.y = flap;
+        if (g.userData.wingR) g.userData.wingR.rotation.y = -flap;
+        g.rotation.y = Math.PI / 2;
+        setDiscoveryOpacity(g, fade * 0.95);
       } else if (d.id === 'firefly') {
         g.position.set(Math.sin(p * 7) * 8, 1.8 + Math.cos(p * 5) * 0.6, camZ - 20);
-        g.userData.sprite.scale.setScalar(0.9);
-        g.userData.sprite.material.color.setHex(0x10b981);
-        g.userData.sprite.material.opacity = fade * 0.85;
+        const pulse = 0.7 + Math.sin(time * 3) * 0.3;
+        g.scale.setScalar(pulse);
+        setDiscoveryOpacity(g, fade * 0.9);
       } else if (d.id === 'heron') {
-        g.position.set(-8, 0.6, camZ - 26);
-        g.userData.sprite.scale.set(0.9, 1.6, 0.9);
-        g.userData.sprite.material.color.setHex(0xdfeee9);
-        g.userData.sprite.material.opacity = fade;
+        // Suya yakın durur, sonra uzaklaşır
+        g.position.set(-8 + p * 6, 0.62, camZ - 26);
+        g.rotation.y = -0.3;
+        setDiscoveryOpacity(g, fade);
       }
     }
+  }
+
+  // Bir keşif grubundaki tüm materyallerin opaklığını ayarlar
+  function setDiscoveryOpacity(group, value) {
+    group.traverse(function (child) {
+      if (child.material && 'opacity' in child.material) {
+        child.material.transparent = true;
+        child.material.opacity = Math.max(0, Math.min(1, value));
+      }
+    });
+  }
+
+  // Keşif nesnesinin geometri ve materyallerini serbest bırakır.
+  function disposeDiscovery(group) {
+    group.traverse(function (child) {
+      if (child.geometry && typeof child.geometry.dispose === 'function') child.geometry.dispose();
+      if (child.material) {
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach(function (m) { if (m && typeof m.dispose === 'function') m.dispose(); });
+      }
+    });
   }
 
   /* ---------- Ana döngü ---------- */
@@ -699,12 +888,18 @@ const CalmScene3D = (function () {
     let target = 0;
     if (holding) target = speed;
     else if (cruise) target = speed * 0.75;
-    // Hareket azaltma: boşta otomatik kayma yapılmaz.
-    // Kamera sürüklenmesi tam da bu tercihin azaltmayı amaçladığı harekettir.
-    else if (idle && !reducedMotion) target = speed * IDLE_SPEED_FACTOR;
+    // Boşta kayma yalnızca kullanıcı açtıysa ve hareket azaltma kapalıysa
+    else if (idle && idleDrift && !reducedMotion) target = speed * IDLE_SPEED_FACTOR;
 
     currentSpeed += (target - currentSpeed) * Math.min(1, dt * 1.8);
     if (currentSpeed < 0.01) currentSpeed = 0;
+
+    // Nefesle Yürü: yumuşak adım tamponunu tüket (sıçrama yok)
+    const glide = consumeGlide(dt);
+    if (glide > 0) {
+      camZ -= glide;
+      if (onAdvance) onAdvance(glide);
+    }
 
     const advance = currentSpeed * dt;
     if (advance > 0) {
@@ -884,10 +1079,26 @@ const CalmScene3D = (function () {
   function setBaseSpeed(v) { speed = Math.max(4, v); }
   function setTurnInput(v) { turnInput = Math.max(-1, Math.min(1, v)); if (v !== 0) notifyInteraction(); }
 
+  // "Nefesle Yürü" için yumuşak adım tamponu (bkz. canvas.js aynı not).
+  // Anlık ilerletme tek karede 26 birim atlar ve sıçrama yaratır.
+  const GLIDE_RATE = 30;      // birim/s — 26 birim yaklaşık 0.9 sn
+  let glideRemaining = 0;
+
   function stepForward(px) {
     if (!(px > 0)) return;
-    camZ -= px;
+    glideRemaining += px;
     notifyInteraction();
+  }
+
+  function consumeGlide(dt) {
+    if (glideRemaining <= 0) return 0;
+    const step = Math.min(glideRemaining, GLIDE_RATE * dt);
+    glideRemaining -= step;
+    return step;
+  }
+
+  function setIdleDrift(value) {
+    idleDrift = !!value;
   }
 
   function getCamera() { return -camZ; }        // 2D motoruyla aynı yön/ölçek
@@ -964,6 +1175,7 @@ const CalmScene3D = (function () {
     setCruise: setCruise,
     setBaseSpeed: setBaseSpeed,
     setTurnInput: setTurnInput,
+    setIdleDrift: setIdleDrift,
     stepForward: stepForward,
     getCamera: getCamera,
     isIdle: isIdle,

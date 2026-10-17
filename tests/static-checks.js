@@ -363,6 +363,75 @@ section('10. README ve doküman bağlantıları');
   }
 }
 
+/* ---------- 11. Ses ve hareket kuralları ---------- */
+
+section('11. Ses ve hareket kuralları');
+
+{
+  const audio = read('js/audio.js');
+
+  // Tek seferlik ses fonksiyonları canPlay() ile korunmalı: ses kapalıyken
+  // çalmamalı, autoplay kuralına uyulmalı.
+  const oneShot = ['footstep', 'rustle', 'chirp', 'flutter', 'glowPulse', 'wingbeat', 'swoosh'];
+  const unguarded = [];
+  for (const fn of oneShot) {
+    const idx = audio.indexOf('function ' + fn + '(');
+    if (idx === -1) { unguarded.push(fn + ' (yok)'); continue; }
+    // Fonksiyon gövdesinin ilk 200 karakterinde canPlay() aranır
+    const body = audio.slice(idx, idx + 200);
+    if (!body.includes('canPlay()')) unguarded.push(fn);
+  }
+  if (unguarded.length) fail('Ses fonksiyonları canPlay() ile korunuyor', unguarded.join(', '));
+  else ok('Tek seferlik sesler canPlay() ile korunuyor', oneShot.length + ' fonksiyon');
+
+  // Keşif sesleri level ile ölçeklenmeli (ani/yüksek ses yok)
+  const scaled = ['flutter', 'glowPulse', 'wingbeat', 'swoosh'].every((fn) => {
+    const idx = audio.indexOf('function ' + fn + '(');
+    return idx !== -1 && audio.slice(idx, idx + 400).includes('* level');
+  });
+  if (scaled) ok('Keşif sesleri ses düzeyiyle ölçekleniyor');
+  else fail('Keşif sesleri', 'level ile ölçeklenmiyor');
+
+  // Harici ses dosyası eklenmemeli (zero-asset)
+  const mediaRefs = audio.match(/\.(mp3|wav|ogg|m4a)/gi) || [];
+  if (mediaRefs.length) fail('Ses dosyası başvurusu', mediaRefs.join(', '));
+  else ok('Harici ses dosyası yok');
+
+  // Boşta kayma varsayılan KAPALI olmalı (kullanıcı habersiz hareket istemez)
+  const app = read('js/app.js');
+  if (/idleDrift:\s*false/.test(app)) ok('Boşta kayma varsayılan kapalı');
+  else fail('Boşta kayma', 'DEFAULT_SAVE içinde idleDrift: false bulunamadı');
+
+  // Her iki motorda da boşta kayma bayrağa bağlı olmalı
+  const c2 = read('js/canvas.js');
+  const c3 = read('js/scene3d.js');
+  if (/idle && idleDrift && !reducedMotion/.test(c2) && /idle && idleDrift && !reducedMotion/.test(c3)) {
+    ok('Boşta kayma her iki motorda bayrağa bağlı');
+  } else {
+    fail('Boşta kayma', 'motorlardan birinde idleDrift denetimi eksik');
+  }
+
+  // Nefesle Yürü adımı yumuşak tamponla tüketilmeli (anlık sıçrama yok)
+  const glide2d = /glideRemaining/.test(c2) && /consumeGlide/.test(c2);
+  const glide3d = /glideRemaining/.test(c3) && /consumeGlide/.test(c3);
+  if (glide2d && glide3d) ok('Nefesle Yürü adımı yumuşak tamponla tüketiliyor');
+  else fail('Nefesle Yürü', 'glide tamponu motorlardan birinde yok');
+
+  // Paneller ortalanmış modal değil, kenar çekmecesi olmalı
+  const css = read('css/style.css');
+  const panelBlock = css.slice(css.indexOf('.panel {'), css.indexOf('.panel {') + 600);
+  if (/right:\s*0/.test(panelBlock) && /backdrop-filter/.test(panelBlock)) {
+    ok('Paneller kenar çekmecesi ve yarı saydam');
+  } else {
+    fail('Panel düzeni', 'çekmece konumu veya saydamlık bulunamadı');
+  }
+
+  // Bahçe okuma fonksiyonları init öncesi güvenli olmalı
+  const sanctuary = read('js/sanctuary.js');
+  if (/function ensureLoaded\(\)/.test(sanctuary)) ok('Sanctuary init öncesi güvenli okuma');
+  else fail('Sanctuary', 'ensureLoaded() koruması yok');
+}
+
 /* ---------- Ozet ---------- */
 
 console.log('\n' + '-'.repeat(58));

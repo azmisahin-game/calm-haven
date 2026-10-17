@@ -133,6 +133,7 @@ const CalmSanctuary = (function () {
   }
 
   function plant(kindId) {
+    ensureLoaded();
     const kind = FLOWER_KINDS.filter(function (k) { return k.id === kindId; })[0];
     if (!kind) return null;
 
@@ -162,7 +163,16 @@ const CalmSanctuary = (function () {
     return entry;
   }
 
+  // Modül, init() çağrılmadan önce de sorgulanabilir: görsel motorların
+  // çizim döngüsü sanctuary init'inden önce başlar. Bu yüzden tüm okuma
+  // fonksiyonları veri yokken güvenli boş değer döner.
+  function ensureLoaded() {
+    if (!data) load();
+    return data;
+  }
+
   function getGarden() {
+    ensureLoaded();
     const now = Date.now();
     return data.garden.map(function (g) {
       const kind = FLOWER_KINDS.filter(function (k) { return k.id === g.kind; })[0] || FLOWER_KINDS[0];
@@ -182,6 +192,7 @@ const CalmSanctuary = (function () {
 
   // Toplamak kayıp değildir: koleksiyon büyür, hiçbir şey eksilmez.
   function findShell() {
+    ensureLoaded();
     const kind = SHELL_KINDS[Math.floor(Math.random() * SHELL_KINDS.length)];
     data.shells[kind.id] = (data.shells[kind.id] || 0) + 1;
     data.lastShellAt = Date.now();
@@ -191,12 +202,14 @@ const CalmSanctuary = (function () {
   }
 
   function getShells() {
+    ensureLoaded();
     return SHELL_KINDS.map(function (k) {
       return { id: k.id, name: k.name, color: k.color, count: data.shells[k.id] || 0 };
     });
   }
 
   function totalShells() {
+    ensureLoaded();
     let sum = 0;
     Object.keys(data.shells).forEach(function (k) { sum += data.shells[k]; });
     return sum;
@@ -205,6 +218,7 @@ const CalmSanctuary = (function () {
   /* ---------- Sal ---------- */
 
   function buildRaft() {
+    ensureLoaded();
     if (data.raftBuilt) return false;
     // Sal yapmak kaynak tüketmez: sadece bir niyet ve zaman ister
     data.raftBuilt = true;
@@ -214,12 +228,14 @@ const CalmSanctuary = (function () {
   }
 
   function hasRaft() {
+    ensureLoaded();
     return !!data.raftBuilt;
   }
 
   /* ---------- Anı defteri ---------- */
 
   function addJournal(text) {
+    ensureLoaded();
     const t = String(text || '').trim();
     if (!t) return null;
     const entry = { text: t.slice(0, 500), at: Date.now() };
@@ -230,10 +246,12 @@ const CalmSanctuary = (function () {
   }
 
   function getJournal() {
+    ensureLoaded();
     return data.journal.slice().reverse();
   }
 
   function clearJournal() {
+    ensureLoaded();
     data.journal = [];
     save();
   }

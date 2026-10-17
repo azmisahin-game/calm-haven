@@ -65,6 +65,17 @@ Bu kurallar ihlal edilmemelidir:
   ifadeler kullanılmaz; uygulama ölçüm yapmaz. Kaynak sınırları
   [docs/SCIENCE-AND-SAFETY.md](docs/SCIENCE-AND-SAFETY.md) içinde yazılıdır.
 - **Analitik ve CDN eklenmez.** `tests/static-checks.js` bunu denetler.
+- **Hareket öngörülebilir olmalı.** Kamera kullanıcı istemeden kaymaz: boşta
+  kayma (`idleDrift`) varsayılan olarak **kapalıdır**. Adımlar anlık
+  ilerletilmez; `glideRemaining` tamponu `update(dt)` içinde tüketilir.
+  Ayrıntı: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) §7
+- **Paneller sahneyi kapatmaz.** Bahçe ve anı defteri sağ kenar çekmecesidir
+  (yarı saydam); ortalanmış opak modal kullanılmaz.
+- **Dokunma alanı ≥48 px.** Yeni düğmeye `min-height: var(--touch)` verin.
+  `tests/browser.js` bunu animasyon oturduktan sonra ölçer.
+- **Keşifler sessiz geçmez.** Yeni bir keşif türü eklerken `audio.js`'e
+  `canPlay()` korumalı ve `level` ile ölçeklenen bir ses ekleyin, 3B ve 2B'de
+  ayırt edilebilir bir biçim verin.
 
 ## Mimari notları
 

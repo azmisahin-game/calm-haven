@@ -51,18 +51,26 @@ testleri çalıştırır, sunucuyu kapatır.
 
 ### Kapsanan senaryolar
 
-| Bölüm | Test sayısı | Kapsam |
-|---|---|---|
-| 1. Yükleme | 2 | 9 modül yükleniyor, konsol hatası yok |
-| 2. Zoom/reflow | 6 | %100/%200/%400: taşma yok, kontroller erişilebilir |
-| 3. Nefes güvenliği | 8 | Durdurma düğmesi, doğal nefes metni, yeniden başlatma |
-| 4. Sessiz giriş | 3 | Ses kapalı başlama ve tercih kaydı |
-| 5. Hareket azaltma | 2 | Kamera statik, keşifler duruyor |
-| 6. Kalıcılık/XSS | 6 | Bahçe kaydı, büyüme, XSS yürütülmüyor, bozuk veri |
-| 7. 2B yedek | 4 | three.js engellenince 2B devralıyor ve çiziyor |
-| 8. Düzen | 1 (20 görünüm) | Çakışma, panel sığma, 48 px dokunma alanı, kaydırma |
-| 9. Erişilebilirlik | 13 | Canlı bölge, dialog, aria-pressed, odak akışı, klavye, kontrast |
-| 10. Bozuk storage | 1 (11 senaryo) | Bozuk veriyle açılış ve yürüme |
+| Bölüm | Kapsam |
+|---|---|
+| 1. Yükleme | 9 modül yükleniyor, konsol hatası yok |
+| 2. Zoom/reflow | %100/%200/%400: taşma yok, kontroller erişilebilir |
+| 3. Nefes güvenliği | Durdurma düğmesi, doğal nefes metni, yeniden başlatma |
+| 4. Sessiz giriş | Ses kapalı başlama ve tercih kaydı |
+| 5. Hareket azaltma | Kamera statik, keşifler duruyor |
+| 6. Kalıcılık/XSS | Bahçe kaydı, büyüme, XSS yürütülmüyor, bozuk veri |
+| 7. 2B yedek | three.js engellenince 2B devralıyor ve çiziyor |
+| 8. Düzen (20 görünüm) | Çakışma, panel sığma, 48 px dokunma alanı, kaydırma |
+| 9. Erişilebilirlik | Canlı bölge, dialog, aria-pressed, odak akışı, klavye, kontrast |
+| 10. Bozuk storage (11 senaryo) | Bozuk veriyle açılış ve yürüme |
+| 11. Sahne kompozisyonu | Gökyüzü görünür, ağaçlar sahneyi kapatmıyor |
+| 12. Hareket öngörülebilirliği | Boşta kayma kapalıyken sabit, Nefesle Yürü sıçramıyor |
+| 13. Keşif sesleri | Ses fonksiyonları, canPlay koruması, adıyla bildirim |
+| 14. Bahçe dünyada | init öncesi güvenli okuma, çekmece, kalıcılık |
+
+**Statik denetimler:** 52 denetim. Bölüm 11, ses fonksiyonlarının `canPlay()` ile
+korunmasını, `idleDrift` varsayılanının kapalı olmasını, glide tamponunun her iki
+motorda bulunmasını ve panellerin çekmece düzeninde olmasını denetler.
 
 ### Önemli test tasarım kararları
 
