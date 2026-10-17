@@ -89,7 +89,7 @@ jobs:
       - name: Üretim Paketini Hazırla
         run: |
           mkdir -p dist
-          cp -r index.html css js data vendor README.md LICENSE dist/
+          cp -r index.html css js data vendor README.md LICENSE docs CHANGELOG.md dist/
           touch dist/.nojekyll
           echo "Paket içeriği:"
           find dist -type f | sort

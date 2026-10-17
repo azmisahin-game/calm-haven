@@ -302,6 +302,67 @@ if (exists(vendor)) {
   fail(vendor, 'dosya yok');
 }
 
+/* ---------- 10. Doküman bağlantıları ---------- */
+
+section('10. README ve doküman bağlantıları');
+
+// README'deki göreceli bağlantılar gerçekten var olmalı. Aksi halde canlı
+// sitede veya depoda 404 verir. (Bir kez oldu: README docs/ dosyalarına
+// bağlanıyordu ama dağıtım paketi docs/ içermiyordu.)
+{
+  const readme = read('README.md');
+  const linkRe = /\[[^\]]+\]\(([^)]+)\)/g;
+  const missing = [];
+  let lm;
+  while ((lm = linkRe.exec(readme)) !== null) {
+    const target = lm[1];
+    if (/^https?:\/\//.test(target) || target.startsWith('#')) continue;
+    const clean = target.split('#')[0];
+    if (!clean) continue;
+    if (!exists(clean)) missing.push(clean);
+  }
+  if (missing.length) fail('README bağlantıları', 'eksik dosya: ' + missing.join(', '));
+  else ok('README göreceli bağlantıları geçerli');
+
+  // docs/ içindeki belgelerin kendi aralarındaki bağlantıları
+  if (exists('docs')) {
+    const docMissing = [];
+    for (const f of fs.readdirSync(path.join(ROOT, 'docs'))) {
+      if (!f.endsWith('.md')) continue;
+      const src = read('docs/' + f);
+      let dm;
+      const dre = /\[[^\]]+\]\(([^)]+)\)/g;
+      while ((dm = dre.exec(src)) !== null) {
+        const t = dm[1];
+        if (/^https?:\/\//.test(t) || t.startsWith('#')) continue;
+        const clean = t.split('#')[0];
+        if (!clean) continue;
+        if (!exists('docs/' + clean) && !exists(clean)) {
+          docMissing.push('docs/' + f + ' -> ' + clean);
+        }
+      }
+    }
+    if (docMissing.length) fail('Doküman bağlantıları', docMissing.join(', '));
+    else ok('Dokümanlar arası bağlantılar geçerli');
+  }
+
+  // Dağıtım paketinde hangi dizinlerin olması gerektiğini belgele
+  const workflow = read('.github/workflows/deploy.yml');
+  const needed = ['index.html', 'css', 'js', 'data', 'vendor'];
+  const notShipped = needed.filter((n) => !workflow.includes(n));
+  if (notShipped.length) fail('Dağıtım paketi', 'eksik: ' + notShipped.join(', '));
+  else ok('Dağıtım paketi gerekli dizinleri içeriyor');
+
+  // README'nin bağlandığı dizinler pakette olmalı
+  const readmeDirs = ['docs'];
+  const missingDirs = readmeDirs.filter((d) => exists(d) && !workflow.includes(d));
+  if (missingDirs.length) {
+    fail('Dağıtım paketi', 'README bağlantılı ama pakette yok: ' + missingDirs.join(', '));
+  } else {
+    ok('README bağlantılı dizinler pakette');
+  }
+}
+
 /* ---------- Ozet ---------- */
 
 console.log('\n' + '-'.repeat(58));
