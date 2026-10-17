@@ -78,6 +78,12 @@ function decodePng(buf) {
 const URL = process.env.CALM_URL || 'http://localhost:12000/';
 const CHROME = process.env.CHROME_PATH || '/usr/bin/chromium';
 
+// CI çalıştırıcıları yavaştır ve WebGL yazılım (SwiftShader) ile render edilir.
+// Varsayılan Puppeteer zaman aşımları bu ortamda yetersiz kalır; ayrıca
+// `networkidle0` sürekli animasyon çizen bir sayfada güvenilir değildir.
+const NAV_TIMEOUT = Number(process.env.CALM_NAV_TIMEOUT || 90000);
+const SETTLE_MS = Number(process.env.CALM_SETTLE_MS || 1200);
+
 let passed = 0;
 let failed = 0;
 const failures = [];
@@ -101,11 +107,21 @@ const WEBGL_ARGS = ['--enable-unsafe-swiftshader', '--use-gl=swiftshader', '--en
 async function newPage(browser, viewport) {
   const page = await browser.newPage();
   await page.setViewport(viewport || { width: 1440, height: 900, deviceScaleFactor: 1 });
+  page.setDefaultNavigationTimeout(NAV_TIMEOUT);
+  page.setDefaultTimeout(NAV_TIMEOUT);
   const errors = [];
   page.on('pageerror', (e) => errors.push('PAGEERROR: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push('CONSOLE: ' + m.text()); });
   page.errors = errors.filter((e) => !e.includes('favicon'));
   return page;
+}
+
+// Güvenilir sayfa yükleme: `networkidle0` sürekli çizen bir sayfada takılabilir.
+// `load` beklenir, ardından uygulamanın kendini kurması için sabit bir süre
+// tanınır. Bu, CI'da kararlı sonuç verir.
+async function goto(page, url) {
+  await page.goto(url || URL, { waitUntil: 'load', timeout: NAV_TIMEOUT });
+  await new Promise((r) => setTimeout(r, SETTLE_MS));
 }
 
 (async () => {
@@ -120,7 +136,7 @@ async function newPage(browser, viewport) {
 
   {
     const page = await newPage(browser);
-    await page.goto(URL, { waitUntil: 'networkidle0', timeout: 45000 });
+    await goto(page);
     await page.waitForFunction('window.__scene3dReady === true', { timeout: 20000 }).catch(() => {});
 
     const mods = await page.evaluate(() => ({
@@ -142,7 +158,7 @@ async function newPage(browser, viewport) {
 
   for (const zoom of [1, 2, 4]) {
     const page = await newPage(browser, { width: Math.round(1440 / zoom), height: Math.round(900 / zoom) });
-    await page.goto(URL, { waitUntil: 'networkidle0' });
+    await goto(page);
     await page.click('#btn-enter').catch(() => {});
     await new Promise((r) => setTimeout(r, 1000));
 
@@ -173,7 +189,7 @@ async function newPage(browser, viewport) {
 
   {
     const page = await newPage(browser);
-    await page.goto(URL, { waitUntil: 'networkidle0' });
+    await goto(page);
     await page.click('#btn-enter');
     await new Promise((r) => setTimeout(r, 1200));
 
@@ -220,9 +236,9 @@ async function newPage(browser, viewport) {
 
   {
     const page = await newPage(browser);
-    await page.goto(URL, { waitUntil: 'networkidle0' });
+    await goto(page);
     await page.evaluate(() => localStorage.clear());
-    await page.reload({ waitUntil: 'networkidle0' });
+    await page.reload({ waitUntil: 'load', timeout: NAV_TIMEOUT });
     await new Promise((r) => setTimeout(r, 800));
 
     const hasSilent = await page.evaluate(() => !!document.getElementById('btn-enter-silent'));
@@ -245,7 +261,7 @@ async function newPage(browser, viewport) {
   {
     const page = await newPage(browser, { width: 900, height: 600 });
     await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
-    await page.goto(URL, { waitUntil: 'networkidle0' });
+    await goto(page);
     await page.waitForFunction('window.__scene3dReady === true', { timeout: 15000 }).catch(() => {});
     await page.click('#btn-enter');
     await new Promise((r) => setTimeout(r, 4000));
@@ -289,9 +305,9 @@ async function newPage(browser, viewport) {
 
   {
     const page = await newPage(browser);
-    await page.goto(URL, { waitUntil: 'networkidle0' });
+    await goto(page);
     await page.evaluate(() => localStorage.clear());
-    await page.reload({ waitUntil: 'networkidle0' });
+    await page.reload({ waitUntil: 'load', timeout: NAV_TIMEOUT });
     await page.click('#btn-enter');
     await new Promise((r) => setTimeout(r, 900));
 
@@ -340,7 +356,7 @@ async function newPage(browser, viewport) {
       localStorage.setItem('calm_haven_sanctuary_v1', 'null');
       return true;
     });
-    await page.reload({ waitUntil: 'networkidle0' });
+    await page.reload({ waitUntil: 'load', timeout: NAV_TIMEOUT });
     await new Promise((r) => setTimeout(r, 1200));
     const survived = await page.evaluate(() => ({
       booted: typeof CalmForest === 'object' && typeof CalmSanctuary === 'object',
@@ -364,7 +380,7 @@ async function newPage(browser, viewport) {
       else req.continue();
     });
 
-    await page.goto(URL, { waitUntil: 'networkidle0', timeout: 40000 }).catch(() => {});
+    await goto(page).catch(() => {});
     await new Promise((r) => setTimeout(r, 7000));
     await page.click('#btn-enter').catch(() => {});
     await new Promise((r) => setTimeout(r, 1500));
@@ -419,7 +435,7 @@ async function newPage(browser, viewport) {
   let layoutProblems = [];
   for (const s of SIZES) {
     const page = await newPage(browser, { width: s.w, height: s.h, deviceScaleFactor: 1 });
-    await page.goto(URL, { waitUntil: 'networkidle0' });
+    await goto(page);
     await page.waitForFunction('window.__scene3dReady === true', { timeout: 12000 }).catch(() => {});
     await page.click('#btn-enter');
     await new Promise((r) => setTimeout(r, 1100));
@@ -482,7 +498,7 @@ async function newPage(browser, viewport) {
 
   {
     const page = await newPage(browser);
-    await page.goto(URL, { waitUntil: 'networkidle0' });
+    await goto(page);
     await page.click('#btn-enter');
     await new Promise((r) => setTimeout(r, 1200));
 
@@ -649,7 +665,7 @@ async function newPage(browser, viewport) {
         } catch (e) { /* yoksay */ }
       }, 'calm_haven_data_v1', c.data);
 
-      await page.goto(URL, { waitUntil: 'networkidle0' });
+      await goto(page);
       await new Promise((r) => setTimeout(r, 1400));
 
       const booted = await page.evaluate(() =>
@@ -711,7 +727,7 @@ async function newPage(browser, viewport) {
         }
       }));
     });
-    await page.goto(URL, { waitUntil: 'networkidle0' });
+    await goto(page);
     await page.waitForFunction('window.__scene3dReady === true', { timeout: 15000 }).catch(() => {});
     await page.click('#btn-enter');
     await new Promise((r) => setTimeout(r, 2500));

@@ -22,6 +22,7 @@ jobs:
   verify:
     name: Denetimler ve testler
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Kodu Çek
         uses: actions/checkout@v4
@@ -37,8 +38,21 @@ jobs:
       - name: Test Bağımlılıklarını Kur
         run: npm install --no-audit --no-fund
 
+      # Tarayıcı testleri WebGL gerektirir; koşucuda Chromium ve gerekli
+      # sistem kütüphaneleri bulunmayabilir. Bu adım güvenli biçimde kurar.
+      - name: Chromium'u Kur
+        run: |
+          if ! command -v chromium >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq chromium-browser || sudo apt-get install -y -qq chromium
+          fi
+          command -v chromium || command -v chromium-browser
+
       - name: Tarayıcı Testleri
         run: bash tests/run-browser.sh
+        env:
+          CALM_NAV_TIMEOUT: '90000'
+          CALM_SETTLE_MS: '1500'
 
       - name: Başarısızlıkta Sunucu Günlüğünü Yükle
         if: failure()
