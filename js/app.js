@@ -99,6 +99,8 @@
     updateHud();
   }
 
+  // Kaydedilmiş veriyi güvenli biçimde okur ve doğrular.
+  // Bozuk, eksik veya yanlış türde veri uygulamayı çökertmemeli.
   function loadState() {
     let parsed = null;
     try {
@@ -107,10 +109,44 @@
     } catch (err) {
       parsed = null;
     }
-    state = parsed ? deepMerge(DEFAULT_SAVE, parsed) : JSON.parse(JSON.stringify(DEFAULT_SAVE));
+
+    // Kök bir nesne değilse (dizi, metin, sayı, null) varsayılana dön
+    const usable = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+    state = usable ? deepMerge(DEFAULT_SAVE, usable) : JSON.parse(JSON.stringify(DEFAULT_SAVE));
+
+    // settings bir nesne olmalı; bozuksa varsayılana dön.
+    // (settings: null kaydedilmişse boot burada çökerdi.)
+    if (!state.settings || typeof state.settings !== 'object' || Array.isArray(state.settings)) {
+      state.settings = JSON.parse(JSON.stringify(DEFAULT_SAVE.settings));
+    }
+
     if (!Array.isArray(state.milestones)) state.milestones = [];
+    state.milestones = state.milestones
+      .map(function (m) { return Number(m); })
+      .filter(function (m) { return Number.isFinite(m) && m > 0; });
+
     state.steps = Math.max(0, Number(state.steps) || 0);
     state.totalTime = Math.max(0, Number(state.totalTime) || 0);
+
+    // Ayar türlerini doğrula: yanlış tür NaN üretip sahneyi bozabilir.
+    // Önce sonlu sayı olduğunu doğrula, sonra sınırla; clamp(NaN) NaN döner.
+    const s = state.settings;
+    s.audioEnabled = s.audioEnabled !== false;
+
+    const lvl = Number(s.audioLevel);
+    s.audioLevel = Number.isFinite(lvl) ? clamp(lvl, 0, 1) : DEFAULT_SAVE.settings.audioLevel;
+
+    const spd = Number(s.walkSpeed);
+    s.walkSpeed = Number.isFinite(spd) ? clamp(spd, 0.1, 1) : DEFAULT_SAVE.settings.walkSpeed;
+
+    if (s.breathMode !== 'resonance' && s.breathMode !== 'sigh') {
+      s.breathMode = DEFAULT_SAVE.settings.breathMode;
+    }
+    if (s.theme !== 'forest' && s.theme !== 'island') {
+      s.theme = DEFAULT_SAVE.settings.theme;
+    }
+    s.breathWalk = s.breathWalk === true;
+
     return state;
   }
 

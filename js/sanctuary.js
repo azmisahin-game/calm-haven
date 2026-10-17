@@ -55,10 +55,61 @@ const CalmSanctuary = (function () {
     } catch (err) {
       parsed = null;
     }
-    data = Object.assign({}, DEFAULT, parsed || {});
-    if (!Array.isArray(data.garden)) data.garden = [];
-    if (!data.shells || typeof data.shells !== 'object') data.shells = {};
-    if (!Array.isArray(data.journal)) data.journal = [];
+
+    // Kök nesne değilse (dizi, metin, sayı, null) varsayılana dön
+    const usable = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    data = Object.assign({}, DEFAULT, usable);
+
+    // Bahçe: geçerli konum ve zaman damgası olmayan kayıtları ayıkla
+    if (!Array.isArray(data.garden)) {
+      data.garden = [];
+    } else {
+      data.garden = data.garden.filter(function (g) {
+        if (!g || typeof g !== 'object') return false;
+        const kindOk = FLOWER_KINDS.some(function (k) { return k.id === g.kind; });
+        const posOk = Number.isFinite(g.x) && Number.isFinite(g.y) &&
+                      g.x >= 0 && g.x < 6 && g.y >= 0 && g.y < 4;
+        return kindOk && posOk;
+      }).map(function (g) {
+        const at = Number(g.plantedAt);
+        return {
+          kind: g.kind,
+          // Gelecekteki veya geçersiz zaman damgası büyümeyi bozar
+          plantedAt: Number.isFinite(at) && at > 0 && at <= Date.now() ? at : Date.now(),
+          x: Math.floor(g.x),
+          y: Math.floor(g.y)
+        };
+      });
+    }
+
+    // Kabuklar: yalnızca bilinen türler ve pozitif tam sayı adetler
+    if (!data.shells || typeof data.shells !== 'object' || Array.isArray(data.shells)) {
+      data.shells = {};
+    } else {
+      const clean = {};
+      SHELL_KINDS.forEach(function (k) {
+        const n = Math.floor(Number(data.shells[k.id]));
+        if (Number.isFinite(n) && n > 0) clean[k.id] = n;
+      });
+      data.shells = clean;
+    }
+
+    // Anı defteri: metin ve geçerli tarih olmayan kayıtları ayıkla
+    if (!Array.isArray(data.journal)) {
+      data.journal = [];
+    } else {
+      data.journal = data.journal.filter(function (e) {
+        return e && typeof e === 'object' && typeof e.text === 'string' && e.text.trim();
+      }).map(function (e) {
+        const at = Number(e.at);
+        return {
+          text: e.text.slice(0, 500),
+          at: Number.isFinite(at) && at > 0 ? at : Date.now()
+        };
+      }).slice(-200);
+    }
+
+    data.raftBuilt = data.raftBuilt === true;
     return data;
   }
 

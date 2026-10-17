@@ -561,6 +561,79 @@ async function newPage(browser, viewport) {
     await page.close();
   }
 
+  /* ---------- Bozuk storage matrisi ---------- */
+  section('10. Bozuk storage matrisi (11 senaryo)');
+
+  const CORRUPT_CASES = [
+    { name: 'settings: null', data: { steps: 5, settings: null } },
+    { name: 'settings: metin', data: { steps: 5, settings: 'bozuk' } },
+    { name: 'walkSpeed: metin', data: { steps: 5, settings: { walkSpeed: 'hizli' } } },
+    { name: 'steps: negatif', data: { steps: -999, settings: {} } },
+    { name: 'steps: metin', data: { steps: 'yuz', settings: {} } },
+    { name: 'milestones: nesne', data: { steps: 5, milestones: { a: 1 }, settings: {} } },
+    { name: 'kök dizi', data: [1, 2, 3] },
+    { name: 'kök metin', data: 'merhaba' },
+    { name: 'kök sayı', data: 42 },
+    { name: 'kök null', data: null },
+    { name: 'audioLevel: 999', data: { settings: { audioEnabled: 'evet', audioLevel: 999, breathMode: 'yok' } } }
+  ];
+
+  {
+    const corruptProblems = [];
+    for (const c of CORRUPT_CASES) {
+      const page = await newPage(browser, { width: 1024, height: 700 });
+      const errs = [];
+      page.on('pageerror', (e) => errs.push(e.message));
+      page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+
+      await page.evaluateOnNewDocument((k, v) => {
+        try {
+          localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+        } catch (e) { /* yoksay */ }
+      }, 'calm_haven_data_v1', c.data);
+
+      await page.goto(URL, { waitUntil: 'networkidle0' });
+      await new Promise((r) => setTimeout(r, 1400));
+
+      const booted = await page.evaluate(() =>
+        typeof CalmForest === 'object' && typeof CalmSanctuary === 'object' &&
+        !!document.getElementById('btn-enter'));
+
+      // Perdeyi geç ve yürümeyi dene (aktif motor üzerinden)
+      let walked = 0;
+      try {
+        await page.click('#btn-enter', { timeout: 3000 });
+        await new Promise((r) => setTimeout(r, 700));
+        const camA = await page.evaluate(() => {
+          const is3d = !document.getElementById('scene-canvas').hidden;
+          return (is3d && window.CalmScene3D) ? window.CalmScene3D.getCamera() : CalmForest.getCamera();
+        });
+        await page.keyboard.down('Space');
+        await new Promise((r) => setTimeout(r, 1800));
+        await page.keyboard.up('Space');
+        await new Promise((r) => setTimeout(r, 300));
+        const camB = await page.evaluate(() => {
+          const is3d = !document.getElementById('scene-canvas').hidden;
+          return (is3d && window.CalmScene3D) ? window.CalmScene3D.getCamera() : CalmForest.getCamera();
+        });
+        walked = Math.round(camB - camA);
+      } catch (e) {
+        walked = -1;
+      }
+
+      const realErrors = errs.filter((e) => !e.includes('favicon'));
+      if (!booted || !(walked > 0) || realErrors.length) {
+        corruptProblems.push(c.name + ' (açıldı:' + booted + ' yürüdü:' + walked +
+          (realErrors.length ? ' hata:' + realErrors[0] : '') + ')');
+      }
+      await page.close();
+    }
+
+    check('Bozuk verinin ' + CORRUPT_CASES.length + ' biçiminde uygulama çalışıyor',
+      corruptProblems.length === 0,
+      corruptProblems.length ? corruptProblems.join(' | ') : CORRUPT_CASES.length + '/' + CORRUPT_CASES.length);
+  }
+
   /* ---------- Ozet ---------- */
   console.log('\n' + '-'.repeat(58));
   console.log('Gecen: ' + passed + '   Basarisiz: ' + failed);
